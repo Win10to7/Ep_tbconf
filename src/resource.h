@@ -28,6 +28,9 @@
 #define IDC_TB_ALLDISPLAYS       108
 #define IDC_TB_MMDISPLAYS        109
 #define IDC_TB_MMCOMBINEBUTTONS  110
+#define IDC_TB_MMSTRING1  9990
+#define IDC_TB_MMSTRING2  9991
+#define IDC_TB_MMSTRING3  9992
 
 /* Start Menu page */
 #define IDC_SM_11STARTMENU  200

@@ -969,9 +969,30 @@ void HandleComboBoxSelChange(WORD iControl)
 #undef GetComboIndex
 }
 
+void CALLBACK MonitorEnumProc(HMONITOR hMon, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData) {
+    int* count = (int*)dwData;
+    (*count)++;
+}
+
+/* Hide the Multi-Monitor related settings if there is only one monitor. */
+void DisplayMultiMonSettings(HWND hWnd) {
+    int monitorCount = 0;
+    EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, (LPARAM)&monitorCount);
+
+    if (monitorCount <= 1) {
+        ShowWindow(GetDlgItem(hWnd, IDC_TB_ALLDISPLAYS), SW_HIDE);
+        ShowWindow(GetDlgItem(hWnd, IDC_TB_MMDISPLAYS), SW_HIDE);
+        ShowWindow(GetDlgItem(hWnd, IDC_TB_MMCOMBINEBUTTONS), SW_HIDE);
+        ShowWindow(GetDlgItem(hWnd, IDC_TB_MMSTRING1), SW_HIDE);
+        ShowWindow(GetDlgItem(hWnd, IDC_TB_MMSTRING2), SW_HIDE);
+        ShowWindow(GetDlgItem(hWnd, IDC_TB_MMSTRING3), SW_HIDE);
+    }
+}
+
 INT_PTR CALLBACK GeneralPageProc(
     HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    DisplayMultiMonSettings(hWnd);
     switch (uMsg)
     {
     case WM_INITDIALOG:
