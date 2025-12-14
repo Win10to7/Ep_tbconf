@@ -14,6 +14,7 @@
 #include <shellapi.h>
 #include <windows.h>
 #include <stdio.h>
+#include <shlobj.h>
 
 /* https://www.geoffchappell.com/studies/windows/shell/shlwapi/api/winpolicy/policies.htm
  */
@@ -75,6 +76,103 @@ void SetIcon(void)
     SendMessage(g_propSheet.hWnd, WM_SETICON, ICON_SMALL, (LPARAM)g_hiconSmall);
 }
 
+static LRESULT CALLBACK PropSheetSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+{
+    if (uMsg == WM_SHOWWINDOW && wParam) {
+        RECT wndRect;
+        GetWindowRect(hWnd, &wndRect);
+        int wndWidth = wndRect.right - wndRect.left;
+        int wndHeight = wndRect.bottom - wndRect.top;
+
+        /* Get screen and work area */
+        int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+        int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+        POINT pt;
+        GetCursorPos(&pt);
+        HMONITOR hMonitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+        MONITORINFO mi = { 0 };
+        mi.cbSize = sizeof(mi);
+        GetMonitorInfo(hMonitor, &mi);
+
+        RECT workArea = mi.rcWork;
+        RECT monitorArea = mi.rcMonitor;
+        int x = 0, y = 0;
+        APPBARDATA abd = { 0 };
+        abd.cbSize = sizeof(APPBARDATA);
+        UINT state = SHAppBarMessage(ABM_GETSTATE, &abd);
+        BOOL isAutoHide = (state & ABS_AUTOHIDE);
+
+        if (isAutoHide) {
+            abd.hWnd = FindWindow(TEXT("Shell_TrayWnd"), NULL);
+            if (abd.hWnd && SHAppBarMessage(ABM_GETTASKBARPOS, &abd)) {
+                if (abd.rc.top == 0 && abd.rc.left == 0 && abd.rc.right == screenWidth) {
+                    /* Taskbar at top */
+                    x = workArea.left;
+                    y = 0;
+                }
+                else if (abd.rc.left == 0 && abd.rc.top == 0 && abd.rc.bottom == screenHeight) {
+                    /* Taskbar at left */
+                    x = 0;
+                    y = workArea.top;
+                }
+                else if (abd.rc.right == screenWidth && abd.rc.top == 0 && abd.rc.bottom == screenHeight) {
+                    /* Taskbar at right */
+                    x = screenWidth - wndWidth;
+                    y = workArea.top;
+                }
+                else {
+                    /* Taskbar at bottom */
+                    x = workArea.left;
+                    y = screenHeight - wndHeight;
+                }
+            }
+            else {
+                x = workArea.left + ((workArea.right - workArea.left) - wndWidth) / 2;
+                y = workArea.top + ((workArea.bottom - workArea.top) - wndHeight) / 2;
+            }
+        }
+        else {
+            if (workArea.top > monitorArea.top) {
+                /* Taskbar at top */
+                x = workArea.left;
+                y = workArea.top;
+            }
+            else if (workArea.left > monitorArea.left) {
+                /* Taskbar at left */
+                x = workArea.left;
+                y = workArea.top;
+            }
+            else if (workArea.right < monitorArea.right) {
+                /* Taskbar at right */
+                x = workArea.right - wndWidth;
+                y = workArea.top;
+            }
+            else if (workArea.bottom < monitorArea.bottom) {
+                /* Taskbar at bottom */
+                x = workArea.left;
+                y = workArea.bottom - wndHeight;
+                if (y < 0) y = 0;
+            }
+            else {
+                x = workArea.left + ((workArea.right - workArea.left) - wndWidth) / 2;
+                y = workArea.top + ((workArea.bottom - workArea.top) - wndHeight) / 2;
+            }
+        }
+
+        SetWindowPos(
+            hWnd,
+            HWND_TOP,
+            x,
+            y,
+            wndWidth,
+            wndHeight,
+            SWP_NOZORDER | SWP_NOSIZE
+        );
+    }
+    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+}
+
 
 int BuildNumber() {
     OSVERSIONINFOEX versionInfo;
@@ -97,6 +195,8 @@ int CALLBACK PropSheetProc(HWND hWnd, UINT uMsg, LPARAM lParam)
     case PSCB_INITIALIZED:
         g_propSheet.hWnd = hWnd;
         SetIcon();
+        SetWindowSubclass(hWnd, PropSheetSubclassProc, 1, 0);
+        break;
     }
 
     return 0;
