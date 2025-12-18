@@ -1244,6 +1244,7 @@ INT_PTR CALLBACK NotificationPageProc(
 INT_PTR CALLBACK AdvancedPageProc(
     HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+    DisplayMultiMonSettings(hWnd);
     switch (uMsg)
     {
     case WM_INITDIALOG:
