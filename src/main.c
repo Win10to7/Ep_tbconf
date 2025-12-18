@@ -151,7 +151,11 @@ static LRESULT CALLBACK PropSheetSubclassProc(HWND hWnd, UINT uMsg, WPARAM wPara
             else if (workArea.bottom < monitorArea.bottom) {
                 /* Taskbar at bottom */
                 x = workArea.left;
-                y = workArea.bottom - wndHeight - 4;
+                #ifdef BLUEPILL
+                   y = workArea.bottom - wndHeight - 4;
+                #else
+                    y = workArea.bottom - wndHeight;
+                #endif
                 if (y < 0) y = 0;
             }
             else {
