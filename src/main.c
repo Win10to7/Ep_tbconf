@@ -66,10 +66,10 @@ void SetIcon(void)
     if (len < 2 || len > MAX_PATH - 22)
         return;
 
-    if (!lstrcat(szFilePath, TEXT("\\System32\\imageres.dll")))
+    if (!lstrcat(szFilePath, TEXT("\\System32\\shell32.dll")))
         return;
 
-    if (ExtractIconEx(szFilePath, 75, &g_hiconLarge, &g_hiconSmall, 1) == 0)
+    if (ExtractIconEx(szFilePath, 39, &g_hiconLarge, &g_hiconSmall, 1) == 0)
         return;
 
     SendMessage(g_propSheet.hWnd, WM_SETICON, ICON_BIG,   (LPARAM)g_hiconLarge);
