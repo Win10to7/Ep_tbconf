@@ -35,8 +35,19 @@
 
 #define S_SM_DEFAULTMENU  "Default Start menu"
 #define S_SM_STARTSCREEN  "Windows 8 Start screen"
+#define S_SM_TEXT_7       "To customize how links, icons, and menus look and behave in the Start menu, click Customize."
 
 #define S_SM_10DLG  "Customize Start Menu"
+#define S_SM_OK_BUTTON "OK"
+#define S_SM_CANCEL_BUTTON "Cancel"
+#define S_SM_DEFAULT_BUTTON "Use &Default Settings"
+
+#define S_SM_7DLG_TEXT "You can customize how links, icons, and menus look and behave on the Start menu."
+#define S_SM_POWEROPTIONS "Power &button action:"
+
+#define S_SM_7DLG_MFU "Start menu size"
+#define S_SM_MFU_PROGRAMS "&Number of recent programs to display:"
+#define S_SM_MFU_ITEMS "Number of recent items to display in &Jump Lists:"
 
 #define S_NA  "Notification Area"
 #define S_NA_ICON  "Icons"
@@ -96,6 +107,13 @@
 #define S_NA_NETWORK_SETTINGS	"Network section in the Settings app"
 #define S_NA_NETWORK_NETCENTER	"Network and Sharing Center in Control Panel"
 #define S_NA_NETWORK_NETCON		"Network Connections in Control Panel"
+
+#define S_SM_POWEROPTIONS_SWITCH "Switch user"
+#define S_SM_POWEROPTIONS_LOGOFF "Log off"
+#define S_SM_POWEROPTIONS_LOCK "Lock"
+#define S_SM_POWEROPTIONS_RESTART "Restart"
+#define S_SM_POWEROPTIONS_SLEEP "Sleep"
+#define S_SM_POWEROPTIONS_SHUTDOWN "Shut down"
 
 #ifdef BLUEPILL
 #include "template7.rc"

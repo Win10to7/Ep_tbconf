@@ -51,6 +51,9 @@ static const TCHAR g_networkFlyoutKey[] =
 INT_PTR CALLBACK StartMenu10DlgProc(
 	HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	
+INT_PTR CALLBACK StartMenu7DlgProc(
+	HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
 typedef struct tagTBSETTINGS
 {
     BOOL bLock;
@@ -67,11 +70,10 @@ typedef struct tagTBSETTINGS
     BOOL b10StartMenu;
     BOOL b11StartMenu;
     BOOL bStartScreen;
+    int  iPowerOptions;
     BOOL bTrackProgs;
     BOOL bTrackDocs;
-	
-    int iMode;
-	
+
     BOOL bWin32Battery;
     BOOL bWin32Sound;
     int  iClock;
@@ -108,7 +110,7 @@ void InitComboBoxes(void)
     InitCombo(IDC_TB_MMDISPLAYS, IDS_TB_MMALL, 3);
     InitCombo(IDC_TB_MMCOMBINEBUTTONS, IDS_TB_COMB_YES, 3);
 	
-	InitCombo(IDC_SM_10DLG_MODE, IDS_SM_10DLG_MODE_DEFAULT, 3);
+	InitCombo(IDC_SM_POWEROPTIONS, IDS_SM_POWEROPTIONS_SWITCH, 6);
 	
 	InitCombo(IDC_NA_CLOCK, IDS_NA_CLOCK_10, 3);
 	InitCombo(IDC_NA_NETWORK, IDS_NA_NETWORK_10, 5);
@@ -133,10 +135,9 @@ void LoadDefaultSettings(void)
     g_oldSettings.b10StartMenu = FALSE;
     g_oldSettings.b11StartMenu = TRUE;
     g_oldSettings.bStartScreen = FALSE;
+    g_oldSettings.iPowerOptions = 2;
     g_oldSettings.bTrackProgs = TRUE;
     g_oldSettings.bTrackDocs = TRUE;
-	
-    g_oldSettings.iMode = 0;
 	
     g_oldSettings.bWin32Battery = FALSE;
     g_oldSettings.bWin32Sound = FALSE;
@@ -191,10 +192,31 @@ void LoadExplorerSettings(void)
 
 		ReadInt(TEXT("Start_ShowClassicMode"), b10StartMenu);
 		ReadInvertedBool(TEXT("Start_ShowClassicMode"), b11StartMenu);
+		
+		ReadDword(TEXT("Start_PowerButtonAction"));
+		if (status == ERROR_SUCCESS && dwType == REG_DWORD) {
+			if (dwData == 256) {
+				g_oldSettings.iPowerOptions = 0; // Switch User
+			}
+			else if (dwData == 1) {
+				g_oldSettings.iPowerOptions = 1; // Log off
+			}
+			else if (dwData == 512) {
+				g_oldSettings.iPowerOptions = 2; // Lock
+			}
+			else if (dwData == 4) {
+				g_oldSettings.iPowerOptions = 3; // Restart
+			}
+			else if (dwData == 16) {
+				g_oldSettings.iPowerOptions = 4; // Sleep
+			}
+			else {
+				g_oldSettings.iPowerOptions = 5; // Shut down
+			}
+		}
+		
 		ReadInt(TEXT("Start_TrackProgs"), bTrackProgs);
 		ReadInt(TEXT("Start_TrackDocs"), bTrackDocs);
-		
-		ReadInt(TEXT("StartUI_EnableRoundedCorners"), iMode);
 		
         ReadInt(TEXT("TaskbarAnimations"), bAnimations);
         ReadInvertedBool(TEXT("DontUsePowerShellOnWinX"), bWinXPowerShell);
@@ -309,10 +331,10 @@ void UpdateExplorerControls(void)
     SetChecked(IDC_SM_11STARTMENU,     g_oldSettings.b11StartMenu);
     SetChecked(IDC_SM_10STARTMENU,    g_oldSettings.b10StartMenu);
     SetChecked(IDC_SM_STARTSCREEN, g_oldSettings.bStartScreen);
+	
+    SetComboIndex(IDC_SM_POWEROPTIONS, g_oldSettings.iPowerOptions);
     SetChecked(IDC_SM_TRACKPROGS, g_oldSettings.bTrackProgs);
     SetChecked(IDC_SM_TRACKDOCS, g_oldSettings.bTrackDocs);
-	
-    SetComboIndex(IDC_SM_10DLG, g_oldSettings.iMode);
 
     SetChecked(IDC_NA_WIN32BATTERY, g_oldSettings.bWin32Battery);
     SetChecked(IDC_NA_WIN32SOUND, g_oldSettings.bWin32Sound);
@@ -437,6 +459,7 @@ BOOL WriteExplorerSettings(void)
         RestoreSetting(bAllDisplays);
         RestoreSetting(iMmDisplays);
         RestoreSetting(iMmCombineButtons);
+        RestoreSetting(iPowerOptions);
 		RestoreSetting(bTrackProgs);
 		RestoreSetting(bTrackDocs);
         return FALSE;
@@ -478,6 +501,33 @@ BOOL WriteExplorerSettings(void)
     UpdateDword(TEXT("MMTaskbarMode"), iMmDisplays);
     UpdateDword(TEXT("MMTaskbarGlomLevel"), iMmCombineButtons);
     UpdateDword(TEXT("EnableAeroPeek"), bPeek);
+	
+	if (HasChanged(iPowerOptions)) {
+		if (g_newSettings.iPowerOptions == 0) {
+			dwData = 256; // Switch User
+		}
+		else if (g_newSettings.iPowerOptions == 1) {
+			dwData = 1; // Log off
+		}
+		else if (g_newSettings.iPowerOptions == 2) {
+			dwData = 512; // Lock
+			}
+		else if (g_newSettings.iPowerOptions == 3) {
+			dwData = 4; // Restart
+		}
+		else if (g_newSettings.iPowerOptions == 4) {
+			dwData = 16; // Sleep
+		}
+		else {
+			dwData = 2; // Shut down
+		}
+		SetDword(TEXT("Start_PowerButtonAction"));
+		if (status != ERROR_SUCCESS) {
+            RestoreSetting(iPowerOptions); 
+            ret = FALSE; 
+        } 
+	}
+	
 	UpdateDword(TEXT("Start_TrackProgs"), bTrackProgs);
 	UpdateDword(TEXT("Start_TrackDocs"), bTrackDocs);
 	
@@ -544,19 +594,17 @@ BOOL WriteExplorerSettings(void)
         }
     }
 
-    if (HasChanged(iMode) || HasChanged(bUserTile))
+    if (HasChanged(bUserTile))
     {
         status = RegCreateKeyEx(HKEY_CURRENT_USER, g_explorerPatcherKey, 0, NULL,
             0, KEY_SET_VALUE, NULL, &hKey, NULL);
         if (status == ERROR_SUCCESS)
         {
-            UpdateDword(TEXT("StartUI_EnableRoundedCorners"), iMode);
             UpdateDword(TEXT("ShowUserTile"), bUserTile);
             RegCloseKey(hKey);
         }
         else
         {
-            RestoreSetting(iMode);
 			RestoreSetting(bUserTile);
             ret = FALSE;
         }
@@ -665,7 +713,7 @@ void ApplyExplorerSettings(void)
         HasChanged(bBadges) || HasChanged(iCombineButtons) ||
         HasChanged(bPeek) || HasChanged(bAllDisplays) ||
         HasChanged(iMmDisplays) || HasChanged(iMmCombineButtons) || HasChanged(b10StartMenu) ||
-        HasChanged(b11StartMenu) || HasChanged(bStartScreen) || HasChanged(bTrackProgs) || HasChanged(bTrackDocs) || HasChanged(iMode) || HasChanged(bWin32Battery) || HasChanged(iClock) || HasChanged(iNetwork) || HasChanged(bUserTile) || HasChanged(bWin32Sound) || HasChanged(bAnimations) || HasChanged(bWinXPowerShell) ||
+        HasChanged(b11StartMenu) || HasChanged(bStartScreen) || HasChanged(iPowerOptions) || HasChanged(bTrackProgs) || HasChanged(bTrackDocs) || HasChanged(bWin32Battery) || HasChanged(iClock) || HasChanged(iNetwork) || HasChanged(bUserTile) || HasChanged(bWin32Sound) || HasChanged(bAnimations) || HasChanged(bWinXPowerShell) ||
         HasChanged(bShowDesktop)) ;
 
     BOOL bExplorerSettingsChanged = bSendSettingChange || HasChanged(bLock);
@@ -854,10 +902,18 @@ void HandleCommand(WORD iControl)
         break;
 
 	case IDC_SM_10STARTMENU_CUSTOMIZE:
-        DialogBoxParam(
+        if (DialogBoxParam(
             g_propSheet.hInstance, MAKEINTRESOURCE(IDC_SM_10DLG),
-            g_hDlg, StartMenu10DlgProc, (LPARAM)&g_explorerPatcherKey);
-		break;	
+            g_hDlg, StartMenu10DlgProc, (LPARAM)&g_explorerPatcherKey) == IDOK)
+            EnableApply();
+        return;
+
+	case IDC_SM_7STARTMENU_CUSTOMIZE:
+        if (DialogBoxParam(
+            g_propSheet.hInstance, MAKEINTRESOURCE(IDC_SM_7DLG),
+            g_hDlg, StartMenu7DlgProc, (LPARAM)&g_explorerPatcherKey) == IDOK)
+            EnableApply();
+        return;
 		
     case IDC_SM_11STARTMENU:
         g_newSettings.b11StartMenu = GetChecked();
@@ -878,10 +934,6 @@ void HandleCommand(WORD iControl)
     case IDC_SM_TRACKDOCS:
         g_newSettings.bTrackDocs = GetChecked();
         break;
-		
-	case IDC_SM_OK_BUTTON:
-		EndDialog(g_hDlg, iControl);
-		break;
 	
     case IDC_NA_WIN32BATTERY:
         g_newSettings.bWin32Battery = GetChecked();
@@ -948,10 +1000,10 @@ void HandleComboBoxSelChange(WORD iControl)
         g_newSettings.iMmCombineButtons = GetComboIndex();
         break;
 		
-    case IDC_SM_10DLG_MODE:
-        g_newSettings.iMode = GetComboIndex();
+    case IDC_SM_POWEROPTIONS:
+        g_newSettings.iPowerOptions = GetComboIndex();
         break;
-		
+
     case IDC_NA_CLOCK:
         g_newSettings.iClock = GetComboIndex();
         break;	
@@ -992,7 +1044,6 @@ void DisplayMultiMonSettings(HWND hWnd) {
 INT_PTR CALLBACK GeneralPageProc(
     HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    DisplayMultiMonSettings(hWnd);
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -1031,7 +1082,7 @@ INT_PTR CALLBACK GeneralPageProc(
 			if (lstrcmpW(((NMLINK *)lParam)->item.szID, L"helplink") == 0)
 			ShellExecute(NULL, TEXT("open"),
 				TEXT("https://github.com/spaac09/Ep_tbconf"),
-                NULL, NULL, SW_SHOWNORMAL);
+				NULL, NULL, SW_SHOWNORMAL);
 			break;
         }
 
@@ -1071,6 +1122,11 @@ INT_PTR CALLBACK StartMenu10PageProc(
         case BN_CLICKED:
             HandleCommand(LOWORD(wParam));
             break;
+			
+        case CBN_SELCHANGE:
+            HandleComboBoxSelChange(LOWORD(wParam));
+            break;
+        
         }
 
         return 0;
@@ -1089,11 +1145,11 @@ INT_PTR CALLBACK StartMenu10PageProc(
 			
         case NM_CLICK:
         case NM_RETURN:
-            if (lstrcmpW(((NMLINK*)lParam)->item.szID, L"helplink") == 0)
-                ShellExecute(NULL, TEXT("open"),
-                    TEXT("https://github.com/spaac09/Ep_tbconf"),
-                    NULL, NULL, SW_SHOWNORMAL);
-            break;
+			if (lstrcmpW(((NMLINK *)lParam)->item.szID, L"helplink") == 0)
+			ShellExecute(NULL, TEXT("open"),
+				TEXT("https://github.com/spaac09/Ep_tbconf"),
+				NULL, NULL, SW_SHOWNORMAL);
+			break;
         }
 
         return 0;
@@ -1119,6 +1175,9 @@ INT_PTR CALLBACK StartMenu11PageProc(
         case BN_CLICKED:
             HandleCommand(LOWORD(wParam));
             break;
+        case CBN_SELCHANGE:
+            HandleComboBoxSelChange(LOWORD(wParam));
+            break;
         }
 
         return 0;
@@ -1137,61 +1196,12 @@ INT_PTR CALLBACK StartMenu11PageProc(
 			
         case NM_CLICK:
         case NM_RETURN:
-            if (lstrcmpW(((NMLINK*)lParam)->item.szID, L"helplink") == 0)
-                ShellExecute(NULL, TEXT("open"),
-                    TEXT("https://github.com/spaac09/Ep_tbconf"),
-                    NULL, NULL, SW_SHOWNORMAL);
-            break;
+			if (lstrcmpW(((NMLINK *)lParam)->item.szID, L"helplink") == 0)
+			ShellExecute(NULL, TEXT("open"),
+				TEXT("https://github.com/spaac09/Ep_tbconf"),
+				NULL, NULL, SW_SHOWNORMAL);
+			break;
         }
-
-        return 0;
-    }
-
-    return 0;
-}
-
-
-INT_PTR CALLBACK StartMenu10DlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        g_hDlg = hWnd;
-        InitPage();
-        return 0;
-		
-    case WM_COMMAND:
-        switch HIWORD(wParam)
-        {
-        case BN_CLICKED:
-            HandleCommand(LOWORD(wParam));
-            break;
-			
-        case CBN_SELCHANGE:
-            HandleComboBoxSelChange(LOWORD(wParam));
-            break;			
-        }
-
-        return 0;
-
-	case WM_CLOSE:
-		EndDialog(g_hDlg, uMsg);
-		return 0;
-	
-    case WM_NOTIFY:
-        switch (((NMHDR *)lParam)->code)
-        {
-        case PSN_APPLY:
-            ApplySettings();
-            SetWindowLongPtr(hWnd, DWLP_MSGRESULT, (LONG_PTR)PSNRET_NOERROR);
-            return TRUE;
-
-        case PSN_KILLACTIVE:
-            SetWindowLongPtr(hWnd, DWLP_MSGRESULT, (LONG_PTR)FALSE);
-            return TRUE;
-
-        }
-
 
         return 0;
     }
@@ -1215,6 +1225,9 @@ INT_PTR CALLBACK NotificationPageProc(
         {
         case BN_CLICKED:
             HandleCommand(LOWORD(wParam));
+            break;
+        case CBN_SELCHANGE:
+            HandleComboBoxSelChange(LOWORD(wParam));
             break;
         }
 
@@ -1244,7 +1257,6 @@ INT_PTR CALLBACK NotificationPageProc(
 INT_PTR CALLBACK AdvancedPageProc(
     HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    DisplayMultiMonSettings(hWnd);
     switch (uMsg)
     {
     case WM_INITDIALOG:
@@ -1257,6 +1269,9 @@ INT_PTR CALLBACK AdvancedPageProc(
         {
         case BN_CLICKED:
             HandleCommand(LOWORD(wParam));
+            break;
+        case CBN_SELCHANGE:
+            HandleComboBoxSelChange(LOWORD(wParam));
             break;
         }
 

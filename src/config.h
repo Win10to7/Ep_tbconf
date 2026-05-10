@@ -4,7 +4,7 @@
 
 /* Enable for 7 style dialog */
 
-//#define BLUEPILL
+#define BLUEPILL
 
 /* Only build the en-US resources. */
 
