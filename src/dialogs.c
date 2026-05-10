@@ -185,6 +185,7 @@ typedef struct tagSTARTMENU_NODE
     UINT iSetting;
     UINT iOption;
     BOOL bRestricted;
+    BOOL bHasImage;
 } STARTMENU_NODE;
 
 typedef struct tagSTARTMENU7STATE
@@ -375,33 +376,60 @@ static const STARTMENU_OPTION g_VideosOptions[] = {
 };
 
 static const STARTMENU_SETTING g_StartMenuSettings[] = {
-    { StartSettingGroup, L"ControlPanel", L"@shell32.dll,-30488", L"%SystemRoot%\\System32\\imageres.dll,22", NULL, NULL, 0, 0, 0, g_ControlPanelOptions, ARRAYSIZE(g_ControlPanelOptions), g_ControlPanelPolicies, ARRAYSIZE(g_ControlPanelPolicies) },
-    { StartSettingGroup, L"Downloads", L"@shell32.dll,-30603", L"%SystemRoot%\\System32\\imageres.dll,184", NULL, NULL, 0, 0, 0, g_DownloadsOptions, ARRAYSIZE(g_DownloadsOptions), g_DownloadsPolicies, ARRAYSIZE(g_DownloadsPolicies) },
-    { StartSettingCheckbox, L"EnableDragDrop", L"@shell32.dll,-30475", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_EnableDragDrop", 0x00000001, 0x00000000, 0x00000001, NULL, 0, g_EnableDragDropPolicies, ARRAYSIZE(g_EnableDragDropPolicies) },
-    { StartSettingCheckbox, L"Favorites", L"@shell32.dll,-30484", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"StartMenuFavorites", 0x00000001, 0x00000000, 0x00000000, NULL, 0, g_FavoritesPolicies, ARRAYSIZE(g_FavoritesPolicies) },
-    { StartSettingCheckbox, L"Homegroup", L"@shell32.dll,-30604", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowHomegroup", 0x00000001, 0x00000000, 0x00000000, NULL, 0, g_HomegroupPolicies, ARRAYSIZE(g_HomegroupPolicies) },
-    { StartSettingCheckbox, L"HoverOpen", L"@shell32.dll,-30573", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_AutoCascade", 0x00000001, 0x00000000, 0x00000001, NULL, 0, NULL, 0 },
-    { StartSettingGroup, L"MyComp", L"@shell32.dll,-30480", L"%SystemRoot%\\system32\\imageres.dll,109", NULL, NULL, 0, 0, 0, g_MyCompOptions, ARRAYSIZE(g_MyCompOptions), g_MyCompPolicies, ARRAYSIZE(g_MyCompPolicies) },
-    { StartSettingGroup, L"MyDocs", L"@shell32.dll,-30485", L"%SystemRoot%\\System32\\imageres.dll,1002", NULL, NULL, 0, 0, 0, g_MyDocsOptions, ARRAYSIZE(g_MyDocsOptions), g_MyDocsPolicies, ARRAYSIZE(g_MyDocsPolicies) },
-    { StartSettingGroup, L"MyGames", L"@shell32.dll,-30579", L"%SystemRoot%\\System32\\imageres.dll,14", NULL, NULL, 0, 0, 0, g_MyGamesOptions, ARRAYSIZE(g_MyGamesOptions), g_MyGamesPolicies, ARRAYSIZE(g_MyGamesPolicies) },
-    { StartSettingGroup, L"MyMusic", L"@shell32.dll,-30487", L"%SystemRoot%\\System32\\imageres.dll,1004", NULL, NULL, 0, 0, 0, g_MyMusicOptions, ARRAYSIZE(g_MyMusicOptions), g_MyMusicPolicies, ARRAYSIZE(g_MyMusicPolicies) },
-    { StartSettingGroup, L"MyPics", L"@shell32.dll,-30486", L"%SystemRoot%\\System32\\imageres.dll,1003", NULL, NULL, 0, 0, 0, g_MyPicsOptions, ARRAYSIZE(g_MyPicsOptions), g_MyPicsPolicies, ARRAYSIZE(g_MyPicsPolicies) },
+    /* Computer */
+    { StartSettingGroup, L"MyComp", L"@shell32.dll,-30480", L"%SystemRoot%\\system32\\imageres.dll,104", NULL, NULL, 0, 0, 0, g_MyCompOptions, ARRAYSIZE(g_MyCompOptions), g_MyCompPolicies, ARRAYSIZE(g_MyCompPolicies) }, 
+    /* Connect to */
     { StartSettingCheckbox, L"NetConn", L"@%SystemRoot%\\system32\\van.dll,-2400", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowNetConn", 0x00000001, 0x00000000, 0x00000000, NULL, 0, g_NetConnPolicies, ARRAYSIZE(g_NetConnPolicies) },
-    { StartSettingCheckbox, L"NotifyNew", L"@shell32.dll,-30574", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_NotifyNewApps", 0x00000001, 0x00000000, 0x00000001, NULL, 0, NULL, 0 },
-    { StartSettingCheckbox, L"RecentItems", L"@shell32.dll,-30607", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowRecentDocs", 0x00000001, 0x00000000, 0x00000000, NULL, 0, g_RecentItemsPolicies, ARRAYSIZE(g_RecentItemsPolicies) },
-    { StartSettingGroup, L"RecordedTV", L"@shell32.dll,-30605", L"%SystemRoot%\\System32\\imageres.dll,1008", NULL, NULL, 0, 0, 0, g_RecordedTVOptions, ARRAYSIZE(g_RecordedTVOptions), g_RecordedTVPolicies, ARRAYSIZE(g_RecordedTVPolicies) },
-    { StartSettingGroup, L"SearchFiles", L"@shell32.dll,-30576", L"%SystemRoot%\\System32\\shell32.dll,235", NULL, NULL, 0, 0, 0, g_SearchFilesOptions, ARRAYSIZE(g_SearchFilesOptions), g_SearchFilesPolicies, ARRAYSIZE(g_SearchFilesPolicies) },
-    { StartSettingCheckbox, L"SearchPrograms", L"@shell32.dll,-30569", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_SearchPrograms", 0x00000001, 0x00000000, 0x00000001, NULL, 0, g_SearchProgramsPolicies, ARRAYSIZE(g_SearchProgramsPolicies) },
-    { StartSettingGroup, L"ShowAdminTools", L"@shell32.dll,-30515", L"%SystemRoot%\\System32\\main.cpl,500", NULL, NULL, 0, 0, 0, g_ShowAdminToolsOptions, ARRAYSIZE(g_ShowAdminToolsOptions), NULL, 0 },
-    { StartSettingCheckbox, L"ShowHelp", L"@shell32.dll,-30489", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowHelp", 0x00000001, 0x00000000, 0x00000001, NULL, 0, g_ShowHelpPolicies, ARRAYSIZE(g_ShowHelpPolicies) },
-    { StartSettingCheckbox, L"ShowNetPlaces", L"@shell32.dll,-30481", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowNetPlaces", 0x00000001, 0x00000000, 0x00000000, NULL, 0, g_ShowNetPlacesPolicies, ARRAYSIZE(g_ShowNetPlacesPolicies) },
-    { StartSettingCheckbox, L"ShowPrinters", L"@shell32.dll,-30493", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowPrinters", 0x00000001, 0x00000000, 0x00000001, NULL, 0, g_ShowPrintersPolicies, ARRAYSIZE(g_ShowPrintersPolicies) },
-    { StartSettingCheckbox, L"ShowRun", L"@shell32.dll,-30483", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowRun", 0x00000001, 0x00000000, 0x00000000, NULL, 0, g_ShowRunPolicies, ARRAYSIZE(g_ShowRunPolicies) },
+    /* Control Panel */
+    { StartSettingGroup, L"ControlPanel", L"@shell32.dll,-30488", L"%SystemRoot%\\System32\\imageres.dll,22", NULL, NULL, 0, 0, 0, g_ControlPanelOptions, ARRAYSIZE(g_ControlPanelOptions), g_ControlPanelPolicies, ARRAYSIZE(g_ControlPanelPolicies) },
+    /* sud.dll */
     { StartSettingCheckbox, L"ShowSetProgramAccessAndDefaults", L"@sud.dll,-1", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowSetProgramAccessAndDefaults", 0x00000001, 0x00000000, 0x00000001, NULL, 0, g_ShowSetProgramAccessAndDefaultsPolicies, ARRAYSIZE(g_ShowSetProgramAccessAndDefaultsPolicies) },
+    /* Debices and Printers */
+    { StartSettingCheckbox, L"ShowPrinters", L"@shell32.dll,-30493", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowPrinters", 0x00000001, 0x00000000, 0x00000001, NULL, 0, g_ShowPrintersPolicies, ARRAYSIZE(g_ShowPrintersPolicies) },
+    /* Documents */
+    { StartSettingGroup, L"MyDocs", L"@shell32.dll,-30485", L"%SystemRoot%\\System32\\imageres.dll,189", NULL, NULL, 0, 0, 0, g_MyDocsOptions, ARRAYSIZE(g_MyDocsOptions), g_MyDocsPolicies, ARRAYSIZE(g_MyDocsPolicies) },
+    /* Downloads */
+    { StartSettingGroup, L"Downloads", L"@shell32.dll,-30603", L"%SystemRoot%\\System32\\imageres.dll,175", NULL, NULL, 0, 0, 0, g_DownloadsOptions, ARRAYSIZE(g_DownloadsOptions), g_DownloadsPolicies, ARRAYSIZE(g_DownloadsPolicies) },
+    /* Drag and Drop */
+    { StartSettingCheckbox, L"EnableDragDrop", L"@shell32.dll,-30475", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_EnableDragDrop", 0x00000001, 0x00000000, 0x00000001, NULL, 0, g_EnableDragDropPolicies, ARRAYSIZE(g_EnableDragDropPolicies) },
+    /* Favorites */
+    { StartSettingCheckbox, L"Favorites", L"@shell32.dll,-30484", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"StartMenuFavorites", 0x00000001, 0x00000000, 0x00000000, NULL, 0, g_FavoritesPolicies, ARRAYSIZE(g_FavoritesPolicies) },
+    /* Games */
+    { StartSettingGroup, L"MyGames", L"@shell32.dll,-30579", L"%SystemRoot%\\System32\\imageres.dll,10", NULL, NULL, 0, 0, 0, g_MyGamesOptions, ARRAYSIZE(g_MyGamesOptions), g_MyGamesPolicies, ARRAYSIZE(g_MyGamesPolicies) },
+    /* Help and Support */
+    { StartSettingCheckbox, L"ShowHelp", L"@shell32.dll,-30489", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowHelp", 0x00000001, 0x00000000, 0x00000001, NULL, 0, g_ShowHelpPolicies, ARRAYSIZE(g_ShowHelpPolicies) },
+    /* Notify about new apps */
+    { StartSettingCheckbox, L"NotifyNew", L"@shell32.dll,-30574", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_NotifyNewApps", 0x00000001, 0x00000000, 0x00000001, NULL, 0, NULL, 0 },
+    /* Homegroup */
+    { StartSettingCheckbox, L"Homegroup", L"@shell32.dll,-30604", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowHomegroup", 0x00000001, 0x00000000, 0x00000000, NULL, 0, g_HomegroupPolicies, ARRAYSIZE(g_HomegroupPolicies) },
+    /* Music */
+    { StartSettingGroup, L"MyMusic", L"@shell32.dll,-30487", L"%SystemRoot%\\System32\\imageres.dll,191", NULL, NULL, 0, 0, 0, g_MyMusicOptions, ARRAYSIZE(g_MyMusicOptions), g_MyMusicPolicies, ARRAYSIZE(g_MyMusicPolicies) },
+    /* Network Places */
+    { StartSettingCheckbox, L"ShowNetPlaces", L"@shell32.dll,-30481", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowNetPlaces", 0x00000001, 0x00000000, 0x00000000, NULL, 0, g_ShowNetPlacesPolicies, ARRAYSIZE(g_ShowNetPlacesPolicies) },
+    /* Hover (I have 0 idea what this does) */
+    { StartSettingCheckbox, L"HoverOpen", L"@shell32.dll,-30573", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_AutoCascade", 0x00000001, 0x00000000, 0x00000001, NULL, 0, NULL, 0 },
+    /* User Account */
+    { StartSettingGroup, L"User", L"@shell32.dll,-30497", L"%SystemRoot%\\system32\\imageres.dll,117", NULL, NULL, 0, 0, 0, g_UserOptions, ARRAYSIZE(g_UserOptions), g_UserPolicies, ARRAYSIZE(g_UserPolicies) },
+    /* Pictures */
+    { StartSettingGroup, L"MyPics", L"@shell32.dll,-30486", L"%SystemRoot%\\System32\\imageres.dll,190", NULL, NULL, 0, 0, 0, g_MyPicsOptions, ARRAYSIZE(g_MyPicsOptions), g_MyPicsPolicies, ARRAYSIZE(g_MyPicsPolicies) },
+    /* Recent Items */
+    { StartSettingCheckbox, L"RecentItems", L"@shell32.dll,-30607", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowRecentDocs", 0x00000001, 0x00000000, 0x00000000, NULL, 0, g_RecentItemsPolicies, ARRAYSIZE(g_RecentItemsPolicies) },
+    /* Recorded TV */
+    { StartSettingGroup, L"RecordedTV", L"@shell32.dll,-30605", L"%SystemRoot%\\System32\\imageres.dll,193", NULL, NULL, 0, 0, 0, g_RecordedTVOptions, ARRAYSIZE(g_RecordedTVOptions), g_RecordedTVPolicies, ARRAYSIZE(g_RecordedTVPolicies) },
+    /* Run */
+    { StartSettingCheckbox, L"ShowRun", L"@shell32.dll,-30483", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowRun", 0x00000001, 0x00000000, 0x00000000, NULL, 0, g_ShowRunPolicies, ARRAYSIZE(g_ShowRunPolicies) },
+    /* Search Files ? */
+    { StartSettingGroup, L"SearchFiles", L"@shell32.dll,-30576", L"%SystemRoot%\\System32\\shell32.dll,235", NULL, NULL, 0, 0, 0, g_SearchFilesOptions, ARRAYSIZE(g_SearchFilesOptions), g_SearchFilesPolicies, ARRAYSIZE(g_SearchFilesPolicies) },
+    /* Search ? */
+    { StartSettingCheckbox, L"SearchPrograms", L"@shell32.dll,-30569", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_SearchPrograms", 0x00000001, 0x00000000, 0x00000001, NULL, 0, g_SearchProgramsPolicies, ARRAYSIZE(g_SearchProgramsPolicies) },
+    /* Sort by Name */
     { StartSettingCheckbox, L"SortByName", L"@shell32.dll,-30571", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_SortByName", 0x00000001, 0x00000000, 0x00000001, NULL, 0, NULL, 0 },
+    /* Admin tools */
+    { StartSettingGroup, L"ShowAdminTools", L"@shell32.dll,-30515", L"%SystemRoot%\\System32\\main.cpl,500", NULL, NULL, 0, 0, 0, g_ShowAdminToolsOptions, ARRAYSIZE(g_ShowAdminToolsOptions), NULL, 0 },
+    /* Use large icons */
     { StartSettingCheckbox, L"UseLargeIcons", L"@shell32.dll,-30572", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_LargeMFUIcons", 0x00000001, 0x00000000, 0x00000001, NULL, 0, NULL, 0 },
-    { StartSettingGroup, L"User", L"@shell32.dll,-30497", L"%SystemRoot%\\system32\\imageres.dll,123", NULL, NULL, 0, 0, 0, g_UserOptions, ARRAYSIZE(g_UserOptions), g_UserPolicies, ARRAYSIZE(g_UserPolicies) },
-    { StartSettingGroup, L"Videos", L"@shell32.dll,-30606", L"%SystemRoot%\\System32\\imageres.dll,1005", NULL, NULL, 0, 0, 0, g_VideosOptions, ARRAYSIZE(g_VideosOptions), g_VideosPolicies, ARRAYSIZE(g_VideosPolicies) },
+    /* Videos */
+    { StartSettingGroup, L"Videos", L"@shell32.dll,-30606", L"%SystemRoot%\\System32\\imageres.dll,192", NULL, NULL, 0, 0, 0, g_VideosOptions, ARRAYSIZE(g_VideosOptions), g_VideosPolicies, ARRAYSIZE(g_VideosPolicies) },
 };
 
 enum
@@ -919,6 +947,77 @@ BOOL ReadTreeItemNode(HWND hTree, HTREEITEM hItem, STARTMENU_NODE **ppNode)
 }
 
 static
+void DrawStartMenuNodeWithoutImage(STARTMENU7STATE *pState,
+    NMTVCUSTOMDRAW *pCustomDraw)
+{
+    STARTMENU_NODE *pNode;
+    RECT rcText;
+    RECT rcItem;
+    RECT rcErase;
+    TVITEMW item;
+    WCHAR szText[256] = L"";
+    HFONT hFont;
+    HFONT hOldFont;
+
+    if (!ReadTreeItemNode(pState->hTree, (HTREEITEM)pCustomDraw->nmcd.dwItemSpec, &pNode) ||
+        pNode->bHasImage)
+        return;
+
+    rcText.left = 0;
+    rcText.top = 0;
+    rcText.right = 0;
+    rcText.bottom = 0;
+    if (!TreeView_GetItemRect(pState->hTree, (HTREEITEM)pCustomDraw->nmcd.dwItemSpec,
+        &rcText, TRUE))
+        return;
+
+    rcItem = rcText;
+    if (!TreeView_GetItemRect(pState->hTree, (HTREEITEM)pCustomDraw->nmcd.dwItemSpec,
+        &rcItem, FALSE))
+        return;
+
+    ZeroMemory(&item, sizeof(item));
+    item.mask = TVIF_HANDLE | TVIF_TEXT;
+    item.hItem = (HTREEITEM)pCustomDraw->nmcd.dwItemSpec;
+    item.pszText = szText;
+    item.cchTextMax = ARRAYSIZE(szText);
+    if (!TreeView_GetItem(pState->hTree, &item))
+        return;
+
+    rcErase = rcText;
+    rcErase.left = rcItem.left;
+    ExtTextOutW(pCustomDraw->nmcd.hdc, 0, 0, ETO_OPAQUE, &rcErase, NULL, 0, NULL);
+
+    rcText.left = rcItem.left;
+    SetBkMode(pCustomDraw->nmcd.hdc, TRANSPARENT);
+    hFont = (HFONT)SendMessage(pState->hTree, WM_GETFONT, 0L, 0L);
+    hOldFont = hFont ? SelectObject(pCustomDraw->nmcd.hdc, hFont) : NULL;
+    DrawTextW(pCustomDraw->nmcd.hdc, szText, -1, &rcText,
+        DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
+    if (hOldFont)
+        SelectObject(pCustomDraw->nmcd.hdc, hOldFont);
+}
+
+static
+LRESULT HandleStartMenuTreeCustomDraw(STARTMENU7STATE *pState,
+    NMTVCUSTOMDRAW *pCustomDraw)
+{
+    switch (pCustomDraw->nmcd.dwDrawStage)
+    {
+    case CDDS_PREPAINT:
+        return CDRF_NOTIFYITEMDRAW;
+    case CDDS_ITEMPREPAINT:
+        return CDRF_NOTIFYPOSTPAINT;
+    case CDDS_ITEMPOSTPAINT:
+        DrawStartMenuNodeWithoutImage(pState, pCustomDraw);
+        return CDRF_DODEFAULT;
+    default:
+        return CDRF_DODEFAULT;
+    }
+}
+
+
+static
 void InitializeStartMenuDefaults(STARTMENU7STATE *pState)
 {
     UINT iSetting;
@@ -1069,6 +1168,7 @@ STARTMENU_NODE *AppendStartMenuNode(STARTMENU7STATE *pState,
     pState->nodes[pState->cNodes].iSetting = iSetting;
     pState->nodes[pState->cNodes].iOption = iOption;
     pState->nodes[pState->cNodes].bRestricted = pState->bRestricted[iSetting];
+    pState->nodes[pState->cNodes].bHasImage = FALSE;
     return &pState->nodes[pState->cNodes++];
 }
 
@@ -1142,7 +1242,7 @@ BOOL InitializeStartMenuTree(STARTMENU7STATE *pState)
             iSetting, 0);
         TVINSERTSTRUCTW item;
         WCHAR szText[256] = L"";
-        int iImage = I_IMAGECALLBACK;
+        int iImage = I_IMAGENONE;
 
         if (!pNode)
             return FALSE;
@@ -1157,6 +1257,9 @@ BOOL InitializeStartMenuTree(STARTMENU7STATE *pState)
             {
                 iImage = ImageList_AddIcon(pState->hIcons, hIcon);
                 DestroyIcon(hIcon);
+                pNode->bHasImage = (iImage != -1);
+                if (!pNode->bHasImage)
+                    iImage = I_IMAGENONE;
             }
         }
 
@@ -1166,8 +1269,8 @@ BOOL InitializeStartMenuTree(STARTMENU7STATE *pState)
         item.item.mask = TVIF_TEXT | TVIF_PARAM | TVIF_IMAGE | TVIF_SELECTEDIMAGE;
         item.item.pszText = szText;
         item.item.lParam = (LPARAM)pNode;
-        item.item.iImage = iImage == -1 ? I_IMAGENONE : iImage;
-        item.item.iSelectedImage = item.item.iImage;
+        item.item.iImage = iImage;
+        item.item.iSelectedImage = iImage;
         pState->hRootItems[iSetting] = TreeView_InsertItem(pState->hTree, &item);
         if (!pState->hRootItems[iSetting])
             return FALSE;
@@ -1501,6 +1604,11 @@ INT_PTR CALLBACK StartMenu7DlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
                         ToggleTreeNode(&g_startMenu7, hItem);
                     return TRUE;
                 }
+            }
+            else if (pHdr->code == NM_CUSTOMDRAW)
+            {
+                return HandleStartMenuTreeCustomDraw(&g_startMenu7,
+                    (NMTVCUSTOMDRAW *)lParam);
             }
         }
         break;
