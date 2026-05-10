@@ -714,8 +714,11 @@ void ApplyExplorerSettings(void)
         HasChanged(bPeek) || HasChanged(bAllDisplays) ||
         HasChanged(iMmDisplays) || HasChanged(iMmCombineButtons) || HasChanged(b10StartMenu) ||
         HasChanged(b11StartMenu) || HasChanged(bStartScreen) || HasChanged(iPowerOptions) || HasChanged(bTrackProgs) || HasChanged(bTrackDocs) || HasChanged(bWin32Battery) || HasChanged(iClock) || HasChanged(iNetwork) || HasChanged(bUserTile) || HasChanged(bWin32Sound) || HasChanged(bAnimations) || HasChanged(bWinXPowerShell) ||
-        HasChanged(bShowDesktop)) ;
-
+        HasChanged(bShowDesktop));
+    BOOL bRebuildStartMenu = HasChanged(b10StartMenu) ||
+        HasChanged(b11StartMenu) || HasChanged(bStartScreen) ||
+        HasChanged(iPowerOptions) || HasChanged(bTrackProgs) ||
+        HasChanged(bTrackDocs) || HasChanged(bUserTile);
     BOOL bExplorerSettingsChanged = bSendSettingChange || HasChanged(bLock);
 
 
@@ -739,8 +742,7 @@ void ApplyExplorerSettings(void)
 
     if (bSendSettingChange)
     {
-        SendNotifyMessage(HWND_BROADCAST, WM_SETTINGCHANGE,
-            0L, (LPARAM)TEXT("TraySettings"));
+        NotifyTraySettingsChanged(bRebuildStartMenu);
     }
 
     if (HasChanged(bLock))

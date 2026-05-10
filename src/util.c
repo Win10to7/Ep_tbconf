@@ -108,3 +108,18 @@ BOOL SetCustomVisualFx(void)
     RegCloseKey(hKey);
     return (result == ERROR_SUCCESS);
 }
+
+void NotifyTraySettingsChanged(BOOL bRebuildStartMenu)
+{
+    static const UINT SBM_REBUILDMENU = WM_USER + 13;
+    HWND hTaskbar;
+
+    SendNotifyMessage(HWND_BROADCAST, WM_SETTINGCHANGE,
+        0L, (LPARAM)TEXT("TraySettings"));
+    if (!bRebuildStartMenu)
+        return;
+
+    hTaskbar = FindWindow(TEXT("Shell_TrayWnd"), TEXT(""));
+    if (hTaskbar)
+        PostMessage(hTaskbar, SBM_REBUILDMENU, 0L, 0L);
+}

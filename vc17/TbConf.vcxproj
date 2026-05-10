@@ -8,6 +8,7 @@
   <Import Project="$(SolutionDir)Exe.props" />
   <Import Project="$(ProjectDir)$(ProjectName).props" />
   <ItemGroup>
+    <ClInclude Include="..\res\resource.h" />
     <ClInclude Include="..\src\config.h" />
     <ClInclude Include="..\src\app.h" />
     <ClInclude Include="..\src\resource.h" />
@@ -23,6 +24,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\res\app.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\res\TbConf.exe.manifest" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

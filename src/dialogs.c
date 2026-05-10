@@ -34,6 +34,15 @@ static const WCHAR g_policyExplorerKey[] =
 static const WCHAR g_policyExplorerAltKey[] =
     L"Software\\Policies\\Microsoft\\Windows\\Explorer";
 
+enum
+{
+    STARTMENU_RECENT_PROGRAMS_DEFAULT = 9,
+    STARTMENU_RECENT_PROGRAMS_MAX = 30,
+    STARTMENU_JUMPLIST_ITEMS_DEFAULT = 10,
+    STARTMENU_JUMPLIST_ITEMS_MAX = 60,
+};
+
+
 static
 PCWSTR WideStrChr(PCWSTR pszText, WCHAR ch)
 {
@@ -430,6 +439,19 @@ DWORD ReadDwordWithDefault(HKEY hRoot, PCWSTR pszRegPath, PCWSTR pszValueName,
 }
 
 static
+DWORD ReadDwordWithDefaultBounded(HKEY hRoot, PCWSTR pszRegPath, PCWSTR pszValueName,
+    DWORD dwDefaultValue, DWORD dwMinValue, DWORD dwMaxValue)
+{
+    DWORD dwValue = ReadDwordWithDefault(hRoot, pszRegPath, pszValueName,
+        dwDefaultValue);
+    if (dwValue < dwMinValue)
+        return dwMinValue;
+    if (dwValue > dwMaxValue)
+        return dwMaxValue;
+    return dwValue;
+}
+
+static
 BOOL WriteDwordValue(HKEY hRoot, PCWSTR pszRegPath, PCWSTR pszValueName,
     DWORD dwValue)
 {
@@ -614,8 +636,6 @@ BOOL AddThemeStateImage(HIMAGELIST hImageList, HTHEME hTheme,
     static const COLORREF crMask = RGB(255, 0, 255);
     HDC hdcScreen = GetDC(NULL);
     HDC hdcMem = CreateCompatibleDC(hdcScreen);
-    BITMAPINFO bmi;
-    void *pBits = NULL;
     HBITMAP hBitmap;
     HBITMAP hOldBitmap;
     HBRUSH hBrush = CreateSolidBrush(crMask);
@@ -624,15 +644,7 @@ BOOL AddThemeStateImage(HIMAGELIST hImageList, HTHEME hTheme,
     SIZE size = { 0, 0 };
     BOOL bRet = FALSE;
 
-    ZeroMemory(&bmi, sizeof(bmi));
-    bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
-    bmi.bmiHeader.biWidth = 16;
-    bmi.bmiHeader.biHeight = 16;
-    bmi.bmiHeader.biPlanes = 1;
-    bmi.bmiHeader.biBitCount = 32;
-    bmi.bmiHeader.biCompression = BI_RGB;
-    hBitmap = CreateDIBSection(hdcScreen, &bmi, DIB_RGB_COLORS, &pBits, NULL, 0);
-    UNREFERENCED_PARAMETER(pBits);
+    hBitmap = CreateCompatibleBitmap(hdcScreen, 16, 16);
     if (!hBitmap)
         goto Cleanup;
 
@@ -652,7 +664,6 @@ BOOL AddThemeStateImage(HIMAGELIST hImageList, HTHEME hTheme,
 
     if (SUCCEEDED(DrawThemeBackground(hTheme, hdcMem, iPartId, iStateId, &rcDraw, NULL)))
         bRet = ImageList_AddMasked(hImageList, hBitmap, crMask) != -1;
-
     SelectObject(hdcMem, hOldBitmap);
 
 Cleanup:
@@ -671,7 +682,7 @@ BOOL CreateStateImageList(STARTMENU7STATE *pState)
     HTHEME hTheme;
     BOOL bRet;
 
-    pState->hStateImages = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 8, 0);
+    pState->hStateImages = ImageList_Create(16, 16, ILC_COLORDDB | ILC_MASK, 8, 0);
     if (!pState->hStateImages)
         return FALSE;
 
@@ -769,6 +780,8 @@ void LoadLegacyRegSettings(void)
         ReadInt(TEXT("Start_MinMFU"), iPrograms);
         ReadInt(TEXT("Start_JumpListItems"), iItems);
         RegCloseKey(hKey);
+        if (g_oldSettings.iItems > STARTMENU_JUMPLIST_ITEMS_MAX)
+            g_oldSettings.iItems = STARTMENU_JUMPLIST_ITEMS_MAX;
     }
 
 #undef ReadInt
@@ -779,8 +792,8 @@ static
 void LoadLegacyDefaultSettings(void)
 {
     g_oldSettings.iMode = 0;
-    g_oldSettings.iPrograms = 10;
-    g_oldSettings.iItems = 10;
+    g_oldSettings.iPrograms = STARTMENU_RECENT_PROGRAMS_DEFAULT;
+    g_oldSettings.iItems = STARTMENU_JUMPLIST_ITEMS_DEFAULT;
 }
 
 static
@@ -795,9 +808,9 @@ static
 void SetRanges(void)
 {
     SendDlgItemMessage(g_hDlg, IDC_SM_MFU_PROGRAMS_SPIN,
-        UDM_SETRANGE, 0L, MAKELONG(30, 0));
+        UDM_SETRANGE, 0L, MAKELONG(STARTMENU_RECENT_PROGRAMS_MAX, 0));
     SendDlgItemMessage(g_hDlg, IDC_SM_MFU_ITEMS_SPIN,
-        UDM_SETRANGE, 0L, MAKELONG(60, 0));
+        UDM_SETRANGE, 0L, MAKELONG(STARTMENU_JUMPLIST_ITEMS_MAX, 0));
 }
 
 static
@@ -866,11 +879,15 @@ BOOL WriteLegacyRegSettings(void)
     if (status == ERROR_SUCCESS)
     {
         dwData = (DWORD)g_newSettings.iPrograms;
+        if (dwData > STARTMENU_RECENT_PROGRAMS_MAX)
+            dwData = STARTMENU_RECENT_PROGRAMS_MAX;
         if (RegSetValueEx(hKey, TEXT("Start_MinMFU"), 0,
             REG_DWORD, (BYTE *)&dwData, sizeof(DWORD)) != ERROR_SUCCESS)
             ret = FALSE;
 
         dwData = (DWORD)g_newSettings.iItems;
+        if (dwData > STARTMENU_JUMPLIST_ITEMS_MAX)
+            dwData = STARTMENU_JUMPLIST_ITEMS_MAX;
         if (RegSetValueEx(hKey, TEXT("Start_JumpListItems"), 0,
             REG_DWORD, (BYTE *)&dwData, sizeof(DWORD)) != ERROR_SUCCESS)
             ret = FALSE;
@@ -925,8 +942,8 @@ void InitializeStartMenuDefaults(STARTMENU7STATE *pState)
         pState->bRestricted[iSetting] = FALSE;
     }
 
-    pState->cPrograms = 10;
-    pState->cItems = 10;
+    pState->cPrograms = STARTMENU_RECENT_PROGRAMS_DEFAULT;
+    pState->cItems = STARTMENU_JUMPLIST_ITEMS_DEFAULT;
 }
 
 static
@@ -936,9 +953,10 @@ void LoadStartMenuState(STARTMENU7STATE *pState)
 
     InitializeStartMenuDefaults(pState);
     pState->cPrograms = ReadDwordWithDefault(HKEY_CURRENT_USER, g_explorerKey,
-        L"Start_MinMFU", 10);
-    pState->cItems = ReadDwordWithDefault(HKEY_CURRENT_USER, g_explorerKey,
-        L"Start_JumpListItems", 10);
+        L"Start_MinMFU", STARTMENU_RECENT_PROGRAMS_DEFAULT);
+    pState->cItems = ReadDwordWithDefaultBounded(HKEY_CURRENT_USER, g_explorerKey,
+        L"Start_JumpListItems", STARTMENU_JUMPLIST_ITEMS_DEFAULT, 0,
+        STARTMENU_JUMPLIST_ITEMS_MAX);
 
     for (iSetting = 0; iSetting < ARRAYSIZE(g_StartMenuSettings); iSetting++)
     {
@@ -968,12 +986,59 @@ void LoadStartMenuState(STARTMENU7STATE *pState)
 }
 
 static
+PCWSTR ParentCheckboxValueName(int iControl)
+{
+    switch (iControl)
+    {
+    case IDC_SM_TRACKPROGS:
+        return L"Start_TrackProgs";
+    case IDC_SM_TRACKDOCS:
+        return L"Start_TrackDocs";
+    default:
+        return NULL;
+    }
+}
+
+static
+BOOL TryReadParentCheckboxState(HWND hWnd, int iControl, BOOL *pbChecked)
+{
+    HWND hControl;
+    if (!hWnd || !pbChecked)
+        return FALSE;
+
+    hControl = GetDlgItem(hWnd, iControl);
+    if (!hControl)
+        return FALSE;
+
+    *pbChecked = IsDlgButtonChecked(hWnd, iControl) == BST_CHECKED;
+    return TRUE;
+}
+
+static
 BOOL ParentCheckboxChecked(STARTMENU7STATE *pState, int iControl)
 {
-    if (!pState->hParent)
+    PCWSTR pszValueName = ParentCheckboxValueName(iControl);
+    HWND hWindows[4];
+    BOOL bChecked;
+    UINT i;
+
+    if (!pszValueName)
         return TRUE;
 
-    return IsDlgButtonChecked(pState->hParent, iControl) == BST_CHECKED;
+    hWindows[0] = pState->hParent;
+    hWindows[1] = GetParent(pState->hDlg);
+    hWindows[2] = GetWindow(pState->hDlg, GW_OWNER);
+    hWindows[3] = GetAncestor(pState->hDlg, GA_ROOTOWNER);
+    for (i = 0; i < ARRAYSIZE(hWindows); i++)
+    {
+        if ((i == 0 || hWindows[i] != hWindows[i - 1]) &&
+            TryReadParentCheckboxState(hWindows[i], iControl, &bChecked))
+        {
+            return bChecked;
+        }
+    }
+
+    return ReadDwordWithDefault(HKEY_CURRENT_USER, g_explorerKey, pszValueName, TRUE) != 0;
 }
 
 static
@@ -1189,12 +1254,14 @@ BOOL WriteStartMenuSettings(const STARTMENU7STATE *pState)
 
     if (IsWindowEnabled(GetDlgItem(pState->hDlg, IDC_SM_MFU_PROGRAMS)) &&
         !WriteDwordValue(HKEY_CURRENT_USER, g_explorerKey,
-            L"Start_MinMFU", pState->cPrograms > 30 ? 30 : pState->cPrograms))
+            L"Start_MinMFU", pState->cPrograms > STARTMENU_RECENT_PROGRAMS_MAX ?
+            STARTMENU_RECENT_PROGRAMS_MAX : pState->cPrograms))
         return FALSE;
 
     if (IsWindowEnabled(GetDlgItem(pState->hDlg, IDC_SM_MFU_ITEMS)) &&
         !WriteDwordValue(HKEY_CURRENT_USER, g_explorerKey,
-            L"Start_JumpListItems", pState->cItems > 60 ? 60 : pState->cItems))
+            L"Start_JumpListItems", pState->cItems > STARTMENU_JUMPLIST_ITEMS_MAX ?
+            STARTMENU_JUMPLIST_ITEMS_MAX : pState->cItems))
         return FALSE;
 
     for (iSetting = 0; iSetting < ARRAYSIZE(g_StartMenuSettings); iSetting++)
@@ -1253,7 +1320,12 @@ BOOL InitializeStartMenu7Dialog(HWND hWnd)
     SetRanges();
     UpdateMfuControls(&g_startMenu7);
 
-    return InitializeStartMenuTree(&g_startMenu7);
+    if (!InitializeStartMenuTree(&g_startMenu7))
+        return FALSE;
+
+    TreeView_SelectSetFirstVisible(g_startMenu7.hTree,
+        TreeView_GetRoot(g_startMenu7.hTree));
+    return TRUE;
 }
 
 static
@@ -1270,8 +1342,7 @@ void ApplyLegacySettings(void)
         UpdateLegacyControls();
 
     g_oldSettings = g_newSettings;
-    SendNotifyMessage(HWND_BROADCAST, WM_SETTINGCHANGE,
-        0L, (LPARAM)TEXT("TraySettings"));
+    NotifyTraySettingsChanged(TRUE);
 }
 
 static
@@ -1387,6 +1458,8 @@ INT_PTR CALLBACK StartMenu7DlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
                 return TRUE;
             }
 
+            NotifyTraySettingsChanged(TRUE);
+
             CleanupStartMenu7Dialog();
             EndDialog(hWnd, IDOK);
             return TRUE;
@@ -1403,7 +1476,7 @@ INT_PTR CALLBACK StartMenu7DlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
         NMHDR *pHdr = (NMHDR *)lParam;
         if (pHdr->idFrom == IDC_SM_SysTreeView)
         {
-            if (pHdr->code == NM_CLICK)
+            if (pHdr->code == NM_CLICK || pHdr->code == NM_DBLCLK)
             {
                 DWORD dwPos = GetMessagePos();
                 TVHITTESTINFO hit;

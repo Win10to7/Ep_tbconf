@@ -24,4 +24,7 @@ int ShowMessageFromResource(HMODULE hModule, HWND hWnd,
 _Success_(return)
 BOOL SetCustomVisualFx(void);
 
+void NotifyTraySettingsChanged(BOOL bRebuildStartMenu);
+
+
 #endif  /* !defined(UTIL_H) */
