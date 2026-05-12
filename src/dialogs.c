@@ -185,7 +185,7 @@ typedef struct tagSTARTMENU_NODE
     UINT iSetting;
     UINT iOption;
     BOOL bRestricted;
-    BOOL bHasImage;
+    HICON hIcon;
 } STARTMENU_NODE;
 
 typedef struct tagSTARTMENU7STATE
@@ -216,9 +216,9 @@ static const STARTMENU_POLICY g_ControlPanelPolicies[] = {
 };
 
 static const STARTMENU_OPTION g_ControlPanelOptions[] = {
-    { StartOptionRadio, L"ControlPanel\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowControlPanel", 0x00000000, 0, 0x00000001 },
-    { StartOptionRadio, L"ControlPanel\\Menu", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowControlPanel", 0x00000002, 0, 0x00000001 },
     { StartOptionRadio, L"ControlPanel\\Open", L"@shell32.dll,-30593", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowControlPanel", 0x00000001, 0, 0x00000001 },
+    { StartOptionRadio, L"ControlPanel\\Menu", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowControlPanel", 0x00000002, 0, 0x00000001 },
+    { StartOptionRadio, L"ControlPanel\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowControlPanel", 0x00000000, 0, 0x00000001 },
 };
 
 static const STARTMENU_POLICY g_DownloadsPolicies[] = {
@@ -226,9 +226,9 @@ static const STARTMENU_POLICY g_DownloadsPolicies[] = {
 };
 
 static const STARTMENU_OPTION g_DownloadsOptions[] = {
-    { StartOptionRadio, L"Downloads\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowDownloads", 0x00000000, 0, 0x00000000 },
-    { StartOptionRadio, L"Downloads\\MenuOfFolder", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowDownloads", 0x00000002, 0, 0x00000000 },
     { StartOptionRadio, L"Downloads\\OpenFolder", L"@shell32.dll,-30593", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowDownloads", 0x00000001, 0, 0x00000000 },
+    { StartOptionRadio, L"Downloads\\MenuOfFolder", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowDownloads", 0x00000002, 0, 0x00000000 },
+    { StartOptionRadio, L"Downloads\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowDownloads", 0x00000000, 0, 0x00000000 },
 };
 
 static const STARTMENU_POLICY g_EnableDragDropPolicies[] = {
@@ -249,9 +249,9 @@ static const STARTMENU_POLICY g_MyCompPolicies[] = {
 };
 
 static const STARTMENU_OPTION g_MyCompOptions[] = {
-    { StartOptionRadio, L"MyComp\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyComputer", 0x00000000, 0, 0x00000001 },
-    { StartOptionRadio, L"MyComp\\Menu", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyComputer", 0x00000002, 0, 0x00000001 },
     { StartOptionRadio, L"MyComp\\Open", L"@shell32.dll,-30593", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyComputer", 0x00000001, 0, 0x00000001 },
+    { StartOptionRadio, L"MyComp\\Menu", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyComputer", 0x00000002, 0, 0x00000001 },
+    { StartOptionRadio, L"MyComp\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyComputer", 0x00000000, 0, 0x00000001 },
 };
 
 static const STARTMENU_POLICY g_MyDocsPolicies[] = {
@@ -259,9 +259,9 @@ static const STARTMENU_POLICY g_MyDocsPolicies[] = {
 };
 
 static const STARTMENU_OPTION g_MyDocsOptions[] = {
-    { StartOptionRadio, L"MyDocs\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyDocs", 0x00000000, 0, 0x00000001 },
-    { StartOptionRadio, L"MyDocs\\MenuOfFolder", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyDocs", 0x00000002, 0, 0x00000001 },
     { StartOptionRadio, L"MyDocs\\OpenFolder", L"@shell32.dll,-30593", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyDocs", 0x00000001, 0, 0x00000001 },
+    { StartOptionRadio, L"MyDocs\\MenuOfFolder", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyDocs", 0x00000002, 0, 0x00000001 },
+    { StartOptionRadio, L"MyDocs\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyDocs", 0x00000000, 0, 0x00000001 },
 };
 
 static const STARTMENU_POLICY g_MyGamesPolicies[] = {
@@ -269,9 +269,9 @@ static const STARTMENU_POLICY g_MyGamesPolicies[] = {
 };
 
 static const STARTMENU_OPTION g_MyGamesOptions[] = {
+    { StartOptionRadio, L"MyGames\\Open", L"@shell32.dll,-30593", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyGames", 0x00000001, 0, 0x00000001 },
     { StartOptionRadio, L"MyGames\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyGames", 0x00000000, 0, 0x00000001 },
     { StartOptionRadio, L"MyGames\\Menu", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyGames", 0x00000002, 0, 0x00000001 },
-    { StartOptionRadio, L"MyGames\\Open", L"@shell32.dll,-30593", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyGames", 0x00000001, 0, 0x00000001 },
 };
 
 static const STARTMENU_POLICY g_MyMusicPolicies[] = {
@@ -280,9 +280,9 @@ static const STARTMENU_POLICY g_MyMusicPolicies[] = {
 };
 
 static const STARTMENU_OPTION g_MyMusicOptions[] = {
-    { StartOptionRadio, L"MyMusic\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyMusic", 0x00000000, 0, 0x00000001 },
-    { StartOptionRadio, L"MyMusic\\MenuOfFolder", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyMusic", 0x00000002, 0, 0x00000001 },
     { StartOptionRadio, L"MyMusic\\OpenFolder", L"@shell32.dll,-30593", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyMusic", 0x00000001, 0, 0x00000001 },
+    { StartOptionRadio, L"MyMusic\\MenuOfFolder", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyMusic", 0x00000002, 0, 0x00000001 },
+    { StartOptionRadio, L"MyMusic\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyMusic", 0x00000000, 0, 0x00000001 },
 };
 
 static const STARTMENU_POLICY g_MyPicsPolicies[] = {
@@ -291,9 +291,9 @@ static const STARTMENU_POLICY g_MyPicsPolicies[] = {
 };
 
 static const STARTMENU_OPTION g_MyPicsOptions[] = {
-    { StartOptionRadio, L"MyPics\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyPics", 0x00000000, 0, 0x00000001 },
-    { StartOptionRadio, L"MyPics\\MenuOfFolder", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyPics", 0x00000002, 0, 0x00000001 },
     { StartOptionRadio, L"MyPics\\OpenFolder", L"@shell32.dll,-30593", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyPics", 0x00000001, 0, 0x00000001 },
+    { StartOptionRadio, L"MyPics\\MenuOfFolder", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyPics", 0x00000002, 0, 0x00000001 },
+    { StartOptionRadio, L"MyPics\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowMyPics", 0x00000000, 0, 0x00000001 },
 };
 
 static const STARTMENU_POLICY g_NetConnPolicies[] = {
@@ -310,9 +310,9 @@ static const STARTMENU_POLICY g_RecordedTVPolicies[] = {
 };
 
 static const STARTMENU_OPTION g_RecordedTVOptions[] = {
-    { StartOptionRadio, L"RecordedTV\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowRecordedTV", 0x00000000, 0, 0x00000000 },
-    { StartOptionRadio, L"RecordedTV\\MenuOfFolder", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowRecordedTV", 0x00000002, 0, 0x00000000 },
     { StartOptionRadio, L"RecordedTV\\OpenFolder", L"@shell32.dll,-30593", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowRecordedTV", 0x00000001, 0, 0x00000000 },
+    { StartOptionRadio, L"RecordedTV\\MenuOfFolder", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowRecordedTV", 0x00000002, 0, 0x00000000 },
+    { StartOptionRadio, L"RecordedTV\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowRecordedTV", 0x00000000, 0, 0x00000000 },
 };
 
 static const STARTMENU_POLICY g_SearchFilesPolicies[] = {
@@ -320,8 +320,8 @@ static const STARTMENU_POLICY g_SearchFilesPolicies[] = {
 };
 
 static const STARTMENU_OPTION g_SearchFilesOptions[] = {
-    { StartOptionRadio, L"SearchFiles\\FullIndex", L"@shell32.dll,-30566", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_SearchFiles", 0x00000002, 0, 0x00000002 },
     { StartOptionRadio, L"SearchFiles\\NoSearch", L"@shell32.dll,-30565", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_SearchFiles", 0x00000000, 0, 0x00000002 },
+    { StartOptionRadio, L"SearchFiles\\FullIndex", L"@shell32.dll,-30566", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_SearchFiles", 0x00000002, 0, 0x00000002 },
     { StartOptionRadio, L"SearchFiles\\UserOnly", L"@shell32.dll,-30567", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_SearchFiles", 0x00000001, 0, 0x00000002 },
 };
 
@@ -330,9 +330,9 @@ static const STARTMENU_POLICY g_SearchProgramsPolicies[] = {
 };
 
 static const STARTMENU_OPTION g_ShowAdminToolsOptions[] = {
+    { StartOptionRadio, L"ShowAdminTools\\Menu", L"@shell32.dll,-30479", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_AdminToolsTemp", 0x00000001, 0, 0x00000000 },
     { StartOptionRadio, L"ShowAdminTools\\Both", L"@shell32.dll,-30478", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_AdminToolsTemp", 0x00000002, 0, 0x00000000 },
     { StartOptionRadio, L"ShowAdminTools\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_AdminToolsTemp", 0x00000000, 0, 0x00000000 },
-    { StartOptionRadio, L"ShowAdminTools\\Menu", L"@shell32.dll,-30479", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_AdminToolsTemp", 0x00000001, 0, 0x00000000 },
 };
 
 static const STARTMENU_POLICY g_ShowHelpPolicies[] = {
@@ -360,9 +360,9 @@ static const STARTMENU_POLICY g_UserPolicies[] = {
 };
 
 static const STARTMENU_OPTION g_UserOptions[] = {
-    { StartOptionRadio, L"User\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowUser", 0x00000000, 0, 0x00000001 },
-    { StartOptionRadio, L"User\\MenuOfFolder", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowUser", 0x00000002, 0, 0x00000001 },
     { StartOptionRadio, L"User\\OpenFolder", L"@shell32.dll,-30593", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowUser", 0x00000001, 0, 0x00000001 },
+    { StartOptionRadio, L"User\\MenuOfFolder", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowUser", 0x00000002, 0, 0x00000001 },
+    { StartOptionRadio, L"User\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowUser", 0x00000000, 0, 0x00000001 },
 };
 
 static const STARTMENU_POLICY g_VideosPolicies[] = {
@@ -370,9 +370,9 @@ static const STARTMENU_POLICY g_VideosPolicies[] = {
 };
 
 static const STARTMENU_OPTION g_VideosOptions[] = {
+    { StartOptionRadio, L"Videos\\OpenFolder", L"@shell32.dll,-30593", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowVideos", 0x00000001, 0, 0x00000000 },
     { StartOptionRadio, L"Videos\\Hide", L"@shell32.dll,-30492", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowVideos", 0x00000000, 0, 0x00000000 },
     { StartOptionRadio, L"Videos\\MenuOfFolder", L"@shell32.dll,-30594", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowVideos", 0x00000002, 0, 0x00000000 },
-    { StartOptionRadio, L"Videos\\OpenFolder", L"@shell32.dll,-30593", L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowVideos", 0x00000001, 0, 0x00000000 },
 };
 
 static const STARTMENU_SETTING g_StartMenuSettings[] = {
@@ -741,6 +741,16 @@ BOOL CreateStateImageList(STARTMENU7STATE *pState)
 static
 void DestroyStartMenuImages(STARTMENU7STATE *pState)
 {
+    UINT iNode;
+    for (iNode = 0; iNode < pState->cNodes; iNode++)
+    {
+        if (pState->nodes[iNode].hIcon)
+        {
+            DestroyIcon(pState->nodes[iNode].hIcon);
+            pState->nodes[iNode].hIcon = NULL;
+        }
+    }
+
     if (pState->hIcons)
     {
         ImageList_Destroy(pState->hIcons);
@@ -947,20 +957,30 @@ BOOL ReadTreeItemNode(HWND hTree, HTREEITEM hItem, STARTMENU_NODE **ppNode)
 }
 
 static
-void DrawStartMenuNodeWithoutImage(STARTMENU7STATE *pState,
+void DrawStartMenuNodeImage(STARTMENU7STATE *pState,
     NMTVCUSTOMDRAW *pCustomDraw)
 {
     STARTMENU_NODE *pNode;
     RECT rcText;
     RECT rcItem;
-    RECT rcErase;
+    RECT rcIcon;
+    RECT rcFill;
+    RECT rcFocus;
+    RECT rcMeasure;
     TVITEMW item;
     WCHAR szText[256] = L"";
     HFONT hFont;
     HFONT hOldFont;
+    COLORREF crTextOld;
+    COLORREF crBkOld;
+    COLORREF crIconBk;
+    int cxImage;
+    int cyImage;
+    int x;
+    int y;
 
     if (!ReadTreeItemNode(pState->hTree, (HTREEITEM)pCustomDraw->nmcd.dwItemSpec, &pNode) ||
-        pNode->bHasImage)
+        !pNode->hIcon)
         return;
 
     rcText.left = 0;
@@ -970,7 +990,6 @@ void DrawStartMenuNodeWithoutImage(STARTMENU7STATE *pState,
     if (!TreeView_GetItemRect(pState->hTree, (HTREEITEM)pCustomDraw->nmcd.dwItemSpec,
         &rcText, TRUE))
         return;
-
     rcItem = rcText;
     if (!TreeView_GetItemRect(pState->hTree, (HTREEITEM)pCustomDraw->nmcd.dwItemSpec,
         &rcItem, FALSE))
@@ -984,19 +1003,216 @@ void DrawStartMenuNodeWithoutImage(STARTMENU7STATE *pState,
     if (!TreeView_GetItem(pState->hTree, &item))
         return;
 
-    rcErase = rcText;
-    rcErase.left = rcItem.left;
-    ExtTextOutW(pCustomDraw->nmcd.hdc, 0, 0, ETO_OPAQUE, &rcErase, NULL, 0, NULL);
+    cxImage = GetSystemMetrics(SM_CXSMICON);
+    cyImage = GetSystemMetrics(SM_CYSMICON);
+    crTextOld = SetTextColor(pCustomDraw->nmcd.hdc, pCustomDraw->clrText);
+    crBkOld = SetBkColor(pCustomDraw->nmcd.hdc, pCustomDraw->clrTextBk);
+    crIconBk = (COLORREF)SendMessage(pState->hTree, TVM_GETBKCOLOR, 0L, 0L);
+    if (crIconBk == CLR_NONE)
+        crIconBk = pCustomDraw->clrTextBk;
 
-    rcText.left = rcItem.left;
-    SetBkMode(pCustomDraw->nmcd.hdc, TRANSPARENT);
     hFont = (HFONT)SendMessage(pState->hTree, WM_GETFONT, 0L, 0L);
     hOldFont = hFont ? SelectObject(pCustomDraw->nmcd.hdc, hFont) : NULL;
+
+    rcIcon = rcText;
+    rcIcon.right = rcIcon.left + cxImage + 2;
+    rcMeasure = rcText;
+    rcMeasure.left = rcIcon.right;
+    rcMeasure.right = rcItem.right;
+    DrawTextW(pCustomDraw->nmcd.hdc, szText, -1, &rcMeasure,
+        DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_CALCRECT);
+    if (rcMeasure.right > rcItem.right)
+        rcMeasure.right = rcItem.right;
+
+    SetBkColor(pCustomDraw->nmcd.hdc, crIconBk);
+    ExtTextOutW(pCustomDraw->nmcd.hdc, 0, 0, ETO_OPAQUE, &rcIcon, NULL, 0, NULL);
+
+    rcFill = rcText;
+    rcFill.left = rcIcon.right;
+    rcFill.right = rcMeasure.right;
+    if (pCustomDraw->nmcd.uItemState & CDIS_SELECTED)
+    {
+        rcFill.left -= 2;
+        rcFill.right += 3;
+        if (rcFill.right > rcItem.right)
+            rcFill.right = rcItem.right;
+    }
+    SetBkColor(pCustomDraw->nmcd.hdc, pCustomDraw->clrTextBk);
+    ExtTextOutW(pCustomDraw->nmcd.hdc, 0, 0, ETO_OPAQUE, &rcFill, NULL, 0, NULL);
+
+    x = rcText.left;
+    y = rcText.top + ((rcText.bottom - rcText.top) - cyImage) / 2;
+    DrawIconEx(pCustomDraw->nmcd.hdc, x, y, pNode->hIcon, cxImage, cyImage,
+        0, NULL, DI_NORMAL);
+
+    SetBkMode(pCustomDraw->nmcd.hdc, TRANSPARENT);
+    rcText.left = rcIcon.right;
+    rcText.right = rcMeasure.right;
     DrawTextW(pCustomDraw->nmcd.hdc, szText, -1, &rcText,
-        DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
+        DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
+    if (pCustomDraw->nmcd.uItemState & CDIS_FOCUS)
+    {
+        rcFocus = rcFill;
+        DrawFocusRect(pCustomDraw->nmcd.hdc, &rcFocus);
+    }
     if (hOldFont)
         SelectObject(pCustomDraw->nmcd.hdc, hOldFont);
+    SetTextColor(pCustomDraw->nmcd.hdc, crTextOld);
+    SetBkColor(pCustomDraw->nmcd.hdc, crBkOld);
 }
+
+static
+BOOL StartMenuHitCustomContent(STARTMENU7STATE *pState, HTREEITEM hItem, POINT pt)
+{
+    STARTMENU_NODE *pNode;
+    RECT rcText;
+    RECT rcItem;
+    RECT rcMeasure;
+    RECT rcHit;
+    TVITEMW item;
+    WCHAR szText[256] = L"";
+    HDC hdc;
+    HFONT hFont;
+    HFONT hOldFont;
+    int cxImage;
+
+    if (!ReadTreeItemNode(pState->hTree, hItem, &pNode))
+        return FALSE;
+
+    rcText.left = 0;
+    rcText.top = 0;
+    rcText.right = 0;
+    rcText.bottom = 0;
+    if (!TreeView_GetItemRect(pState->hTree, hItem, &rcText, TRUE))
+        return FALSE;
+    rcItem = rcText;
+    if (!TreeView_GetItemRect(pState->hTree, hItem, &rcItem, FALSE))
+        return FALSE;
+
+    ZeroMemory(&item, sizeof(item));
+    item.mask = TVIF_HANDLE | TVIF_TEXT;
+    item.hItem = hItem;
+    item.pszText = szText;
+    item.cchTextMax = ARRAYSIZE(szText);
+    if (!TreeView_GetItem(pState->hTree, &item))
+        return FALSE;
+
+    hdc = GetDC(pState->hTree);
+    if (!hdc)
+        return FALSE;
+    hFont = (HFONT)SendMessage(pState->hTree, WM_GETFONT, 0L, 0L);
+    hOldFont = hFont ? SelectObject(hdc, hFont) : NULL;
+
+    cxImage = 0;
+    rcMeasure = rcText;
+    if (pNode->hIcon)
+    {
+        cxImage = GetSystemMetrics(SM_CXSMICON) + 2;
+        rcMeasure.left += cxImage;
+    }
+    rcMeasure.right = rcItem.right;
+    DrawTextW(hdc, szText, -1, &rcMeasure,
+        DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_CALCRECT);
+    if (hOldFont)
+        SelectObject(hdc, hOldFont);
+    ReleaseDC(pState->hTree, hdc);
+
+    if (rcMeasure.right > rcItem.right)
+        rcMeasure.right = rcItem.right;
+    rcHit = rcMeasure;
+    if (pNode->hIcon)
+        rcHit.left -= cxImage;
+    return PtInRect(&rcHit, pt);
+}
+
+static
+HTREEITEM StartMenuCustomHitItem(STARTMENU7STATE *pState, POINT pt)
+{
+    HTREEITEM hItem = TreeView_GetFirstVisible(pState->hTree);
+    while (hItem)
+    {
+        RECT rcItem;
+        rcItem.left = 0;
+        rcItem.top = 0;
+        rcItem.right = 0;
+        rcItem.bottom = 0;
+        if (TreeView_GetItemRect(pState->hTree, hItem, &rcItem, FALSE) &&
+            pt.y >= rcItem.top && pt.y < rcItem.bottom &&
+            StartMenuHitCustomContent(pState, hItem, pt))
+        {
+            return hItem;
+        }
+        hItem = TreeView_GetNextVisible(pState->hTree, hItem);
+    }
+    return NULL;
+}
+
+
+static
+void ToggleTreeNode(STARTMENU7STATE *pState, HTREEITEM hItem);
+
+static
+BOOL HandleStartMenuTreeClick(STARTMENU7STATE *pState, POINT pt)
+{
+    TVHITTESTINFO hit;
+    HTREEITEM hItem;
+    STARTMENU_NODE *pNode;
+    BOOL bNativeHit;
+    BOOL bCustomHit;
+
+    ZeroMemory(&hit, sizeof(hit));
+    hit.pt = pt;
+    TreeView_HitTest(pState->hTree, &hit);
+    hItem = hit.hItem ? hit.hItem :
+        StartMenuCustomHitItem(pState, hit.pt);
+    pNode = NULL;
+    if (hItem)
+        ReadTreeItemNode(pState->hTree, hItem, &pNode);
+    bNativeHit = hItem == hit.hItem &&
+        (hit.flags & TVHT_ONITEMSTATEICON);
+    if (pNode && !pNode->hIcon)
+    {
+        bNativeHit = bNativeHit ||
+            (hItem == hit.hItem &&
+            (hit.flags & (TVHT_ONITEMICON | TVHT_ONITEMLABEL)));
+    }
+    bCustomHit = hItem &&
+        StartMenuHitCustomContent(pState, hItem, hit.pt);
+    if (!hItem || !(bNativeHit || bCustomHit))
+        return FALSE;
+
+    TreeView_SelectItem(pState->hTree, hItem);
+    SetFocus(pState->hTree);
+    ToggleTreeNode(pState, hItem);
+    return TRUE;
+}
+
+static
+LRESULT CALLBACK StartMenuTreeSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam,
+    LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
+{
+    STARTMENU7STATE *pState = (STARTMENU7STATE *)dwRefData;
+
+    UNREFERENCED_PARAMETER(uIdSubclass);
+    switch (uMsg)
+    {
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONDBLCLK:
+    {
+        POINT pt;
+        UNREFERENCED_PARAMETER(hWnd);
+        pt.x = GET_X_LPARAM(lParam);
+        pt.y = GET_Y_LPARAM(lParam);
+        if (pState && HandleStartMenuTreeClick(pState, pt))
+            return 0;
+        break;
+    }
+    }
+    return DefSubclassProc(hWnd, uMsg, wParam, lParam);
+}
+
+
+
 
 static
 LRESULT HandleStartMenuTreeCustomDraw(STARTMENU7STATE *pState,
@@ -1009,7 +1225,7 @@ LRESULT HandleStartMenuTreeCustomDraw(STARTMENU7STATE *pState,
     case CDDS_ITEMPREPAINT:
         return CDRF_NOTIFYPOSTPAINT;
     case CDDS_ITEMPOSTPAINT:
-        DrawStartMenuNodeWithoutImage(pState, pCustomDraw);
+        DrawStartMenuNodeImage(pState, pCustomDraw);
         return CDRF_DODEFAULT;
     default:
         return CDRF_DODEFAULT;
@@ -1168,7 +1384,7 @@ STARTMENU_NODE *AppendStartMenuNode(STARTMENU7STATE *pState,
     pState->nodes[pState->cNodes].iSetting = iSetting;
     pState->nodes[pState->cNodes].iOption = iOption;
     pState->nodes[pState->cNodes].bRestricted = pState->bRestricted[iSetting];
-    pState->nodes[pState->cNodes].bHasImage = FALSE;
+    pState->nodes[pState->cNodes].hIcon = NULL;
     return &pState->nodes[pState->cNodes++];
 }
 
@@ -1221,18 +1437,13 @@ static
 BOOL InitializeStartMenuTree(STARTMENU7STATE *pState)
 {
     UINT iSetting;
-    INT iIconIndex = 0;
 
-    pState->hIcons = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK,
-        (int)ARRAYSIZE(g_StartMenuSettings), 4);
-    if (!pState->hIcons)
-        return FALSE;
+
 
     if (!CreateStateImageList(pState))
         return FALSE;
 
     TreeView_SetImageList(pState->hTree, pState->hStateImages, TVSIL_STATE);
-    TreeView_SetImageList(pState->hTree, pState->hIcons, TVSIL_NORMAL);
 
     for (iSetting = 0; iSetting < ARRAYSIZE(g_StartMenuSettings); iSetting++)
     {
@@ -1242,7 +1453,6 @@ BOOL InitializeStartMenuTree(STARTMENU7STATE *pState)
             iSetting, 0);
         TVINSERTSTRUCTW item;
         WCHAR szText[256] = L"";
-        int iImage = I_IMAGENONE;
 
         if (!pNode)
             return FALSE;
@@ -1254,23 +1464,15 @@ BOOL InitializeStartMenuTree(STARTMENU7STATE *pState)
         {
             HICON hIcon;
             if (LoadSettingIcon(pSetting->pszBitmap, &hIcon))
-            {
-                iImage = ImageList_AddIcon(pState->hIcons, hIcon);
-                DestroyIcon(hIcon);
-                pNode->bHasImage = (iImage != -1);
-                if (!pNode->bHasImage)
-                    iImage = I_IMAGENONE;
-            }
+                pNode->hIcon = hIcon;
         }
 
         ZeroMemory(&item, sizeof(item));
         item.hParent = TVI_ROOT;
         item.hInsertAfter = TVI_LAST;
-        item.item.mask = TVIF_TEXT | TVIF_PARAM | TVIF_IMAGE | TVIF_SELECTEDIMAGE;
+        item.item.mask = TVIF_TEXT | TVIF_PARAM;
         item.item.pszText = szText;
         item.item.lParam = (LPARAM)pNode;
-        item.item.iImage = iImage;
-        item.item.iSelectedImage = iImage;
         pState->hRootItems[iSetting] = TreeView_InsertItem(pState->hTree, &item);
         if (!pState->hRootItems[iSetting])
             return FALSE;
@@ -1297,11 +1499,9 @@ BOOL InitializeStartMenuTree(STARTMENU7STATE *pState)
                 ZeroMemory(&item, sizeof(item));
                 item.hParent = pState->hRootItems[iSetting];
                 item.hInsertAfter = TVI_LAST;
-                item.item.mask = TVIF_TEXT | TVIF_PARAM | TVIF_IMAGE | TVIF_SELECTEDIMAGE;
+                item.item.mask = TVIF_TEXT | TVIF_PARAM;
                 item.item.pszText = szOptionText;
                 item.item.lParam = (LPARAM)pOptionNode;
-                item.item.iImage = I_IMAGENONE;
-                item.item.iSelectedImage = I_IMAGENONE;
                 pState->hOptionItems[iSetting][iOption] =
                     TreeView_InsertItem(pState->hTree, &item);
                 if (!pState->hOptionItems[iSetting][iOption])
@@ -1312,8 +1512,7 @@ BOOL InitializeStartMenuTree(STARTMENU7STATE *pState)
             RefreshStartMenuSettingUI(pState, iSetting);
         }
 
-        if (iImage >= 0)
-            iIconIndex++;
+
     }
 
     return TRUE;
@@ -1426,6 +1625,8 @@ BOOL InitializeStartMenu7Dialog(HWND hWnd)
     if (!InitializeStartMenuTree(&g_startMenu7))
         return FALSE;
 
+    SetWindowSubclass(g_startMenu7.hTree, StartMenuTreeSubclassProc, 1,
+        (DWORD_PTR)&g_startMenu7);
     TreeView_SelectSetFirstVisible(g_startMenu7.hTree,
         TreeView_GetRoot(g_startMenu7.hTree));
     return TRUE;
@@ -1434,6 +1635,8 @@ BOOL InitializeStartMenu7Dialog(HWND hWnd)
 static
 void CleanupStartMenu7Dialog(void)
 {
+    if (g_startMenu7.hTree)
+        RemoveWindowSubclass(g_startMenu7.hTree, StartMenuTreeSubclassProc, 1);
     DestroyStartMenuImages(&g_startMenu7);
     ZeroMemory(&g_startMenu7, sizeof(g_startMenu7));
 }
@@ -1582,17 +1785,12 @@ INT_PTR CALLBACK StartMenu7DlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
             if (pHdr->code == NM_CLICK || pHdr->code == NM_DBLCLK)
             {
                 DWORD dwPos = GetMessagePos();
-                TVHITTESTINFO hit;
-                ZeroMemory(&hit, sizeof(hit));
-                hit.pt.x = GET_X_LPARAM(dwPos);
-                hit.pt.y = GET_Y_LPARAM(dwPos);
-                MapWindowPoints(HWND_DESKTOP, g_startMenu7.hTree, &hit.pt, 1);
-                if (TreeView_HitTest(g_startMenu7.hTree, &hit) && hit.hItem &&
-                    (hit.flags & (TVHT_ONITEMSTATEICON | TVHT_ONITEMICON | TVHT_ONITEMLABEL)))
-                {
-                    ToggleTreeNode(&g_startMenu7, hit.hItem);
+                POINT pt;
+                pt.x = GET_X_LPARAM(dwPos);
+                pt.y = GET_Y_LPARAM(dwPos);
+                MapWindowPoints(HWND_DESKTOP, g_startMenu7.hTree, &pt, 1);
+                if (HandleStartMenuTreeClick(&g_startMenu7, pt))
                     return TRUE;
-                }
             }
             else if (pHdr->code == TVN_KEYDOWN)
             {
@@ -1607,8 +1805,10 @@ INT_PTR CALLBACK StartMenu7DlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
             }
             else if (pHdr->code == NM_CUSTOMDRAW)
             {
-                return HandleStartMenuTreeCustomDraw(&g_startMenu7,
-                    (NMTVCUSTOMDRAW *)lParam);
+                SetWindowLongPtr(hWnd, DWLP_MSGRESULT,
+                    HandleStartMenuTreeCustomDraw(&g_startMenu7,
+                        (NMTVCUSTOMDRAW *)lParam));
+                return TRUE;
             }
         }
         break;

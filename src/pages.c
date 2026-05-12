@@ -135,7 +135,7 @@ void LoadDefaultSettings(void)
     g_oldSettings.b10StartMenu = FALSE;
     g_oldSettings.b11StartMenu = TRUE;
     g_oldSettings.bStartScreen = FALSE;
-    g_oldSettings.iPowerOptions = 2;
+    g_oldSettings.iPowerOptions = 5;
     g_oldSettings.bTrackProgs = TRUE;
     g_oldSettings.bTrackDocs = TRUE;
 	
