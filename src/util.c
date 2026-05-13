@@ -108,18 +108,75 @@ BOOL SetCustomVisualFx(void)
     RegCloseKey(hKey);
     return (result == ERROR_SUCCESS);
 }
+static const WCHAR g_startIsBackKey[] = L"SOFTWARE\\StartIsBack";
+
+BOOL StartIsBackExists(void)
+{
+    HKEY hKey;
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, g_startIsBackKey, 0,
+        KEY_QUERY_VALUE, &hKey) != ERROR_SUCCESS)
+        return FALSE;
+    RegCloseKey(hKey);
+    return TRUE;
+}
+
+BOOL ReadStartIsBackDword(PCWSTR pszValueName, DWORD *pdwValue)
+{
+    DWORD dwType = 0;
+    DWORD dwSize;
+
+    if (!pszValueName || !*pszValueName || !pdwValue)
+        return FALSE;
+
+    dwSize = sizeof(*pdwValue);
+    return RegGetValueW(HKEY_CURRENT_USER, g_startIsBackKey, pszValueName,
+        RRF_RT_REG_DWORD, &dwType, pdwValue, &dwSize) == ERROR_SUCCESS &&
+        dwType == REG_DWORD;
+}
+
+BOOL WriteStartIsBackDword(PCWSTR pszValueName, DWORD dwValue)
+{
+    HKEY hKey;
+    LSTATUS status;
+
+    if (!pszValueName || !*pszValueName)
+        return FALSE;
+    if (!StartIsBackExists())
+        return TRUE;
+
+    status = RegOpenKeyExW(HKEY_CURRENT_USER, g_startIsBackKey, 0,
+        KEY_SET_VALUE, &hKey);
+    if (status != ERROR_SUCCESS)
+        return FALSE;
+
+    status = RegSetValueExW(hKey, pszValueName, 0, REG_DWORD,
+        (const BYTE *)&dwValue, sizeof(dwValue));
+    RegCloseKey(hKey);
+    return status == ERROR_SUCCESS;
+}
+
+
+static
+void NotifySettingChanged(LPCTSTR pszSetting)
+{
+    SendNotifyMessage(HWND_BROADCAST, WM_SETTINGCHANGE, 0L, (LPARAM)pszSetting);
+}
 
 void NotifyTraySettingsChanged(BOOL bRebuildStartMenu)
 {
     static const UINT SBM_REBUILDMENU = WM_USER + 13;
     HWND hTaskbar;
 
-    SendNotifyMessage(HWND_BROADCAST, WM_SETTINGCHANGE,
-        0L, (LPARAM)TEXT("TraySettings"));
+    NotifySettingChanged(TEXT("TraySettings"));
     if (!bRebuildStartMenu)
         return;
 
     hTaskbar = FindWindow(TEXT("Shell_TrayWnd"), TEXT(""));
     if (hTaskbar)
         PostMessage(hTaskbar, SBM_REBUILDMENU, 0L, 0L);
+}
+
+void NotifyStartIsBackSettingsChanged(void)
+{
+    NotifySettingChanged(TEXT("SIBSettings"));
 }

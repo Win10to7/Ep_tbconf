@@ -10,10 +10,10 @@
 #include "util.h"
 
 #include <commctrl.h>
+#include <objbase.h>
 #include <shellapi.h>
 #include <shlwapi.h>
 #include <psapi.h>
-
 #define EnableApply() \
     SendMessage(g_propSheet.hWnd, PSM_CHANGED, (WPARAM)g_hDlg, 0L)
 
@@ -67,9 +67,6 @@ typedef struct tagTBSETTINGS
     int  iMmCombineButtons;
     BYTE iLocation;
 	
-    BOOL b10StartMenu;
-    BOOL b11StartMenu;
-    BOOL bStartScreen;
     int  iPowerOptions;
     BOOL bTrackProgs;
     BOOL bTrackDocs;
@@ -91,6 +88,96 @@ static TBSETTINGS g_oldSettings;
 static TBSETTINGS g_newSettings;
 
 static HWND g_hDlg;
+
+typedef struct tagHELPPANE HELPPANE;
+typedef struct tagHELPPANEVTBL
+{
+    HRESULT (STDMETHODCALLTYPE *QueryInterface)(
+        HELPPANE *This, REFIID riid, void **ppvObject);
+    ULONG (STDMETHODCALLTYPE *AddRef)(HELPPANE *This);
+    ULONG (STDMETHODCALLTYPE *Release)(HELPPANE *This);
+    HRESULT (STDMETHODCALLTYPE *DisplayTask)(HELPPANE *This, LPCWSTR pszTask);
+} HELPPANEVTBL;
+
+struct tagHELPPANE
+{
+    const HELPPANEVTBL *lpVtbl;
+};
+
+typedef enum tagHELPTOPIC
+{
+    HelpTopicTaskbar,
+    HelpTopicStartMenu
+} HELPTOPIC;
+
+static const WCHAR g_helpPaneClsidString[] =
+    L"{8CEC58E7-07A1-11D9-B15E-000D56BFE6EE}";
+static const WCHAR g_helpPaneIidString[] =
+    L"{8CEC5884-07A1-11D9-B15E-000D56BFE6EE}";
+static const WCHAR g_taskbarHelpUri[] =
+    L"mshelp://windows/?id=5de7c31f-1b8b-4431-9d3d-c0994939b186";
+static const WCHAR g_startMenuHelpUri[] =
+    L"mshelp://windows/?id=c45acd5d-98b5-4245-8ce6-1f7bba654767";
+
+static
+LPCWSTR GetHelpTopicUri(HELPTOPIC topic)
+{
+    return topic == HelpTopicTaskbar ? g_taskbarHelpUri : g_startMenuHelpUri;
+}
+
+static
+void OpenHelpTopic(HELPTOPIC topic)
+{
+    HRESULT hrInit;
+    HRESULT hr;
+    BOOL bDidInit;
+    CLSID clsid;
+    IID iid;
+    HELPPANE *pHelpPane;
+    LPCWSTR pszUri;
+
+    pszUri = GetHelpTopicUri(topic);
+    bDidInit = FALSE;
+    pHelpPane = NULL;
+
+    hrInit = CoInitialize(NULL);
+    if (FAILED(hrInit) && hrInit != RPC_E_CHANGED_MODE)
+        goto shell_execute;
+    if (SUCCEEDED(hrInit))
+        bDidInit = TRUE;
+
+    hr = CLSIDFromString((LPOLESTR)g_helpPaneClsidString, &clsid);
+    if (FAILED(hr))
+        goto shell_execute;
+
+    hr = IIDFromString((LPOLESTR)g_helpPaneIidString, &iid);
+    if (FAILED(hr))
+        goto shell_execute;
+
+    hr = CoCreateInstance(&clsid, NULL, CLSCTX_INPROC_SERVER, &iid,
+        (void **)&pHelpPane);
+    if (SUCCEEDED(hr))
+    {
+        hr = pHelpPane->lpVtbl->DisplayTask(pHelpPane, pszUri);
+        pHelpPane->lpVtbl->Release(pHelpPane);
+        if (SUCCEEDED(hr))
+            goto cleanup;
+    }
+
+shell_execute:
+    ShellExecuteW(NULL, L"open", pszUri, NULL, NULL, SW_SHOWNORMAL);
+
+cleanup:
+    if (bDidInit)
+        CoUninitialize();
+}
+
+static
+void HandleHelpLinkClick(LPARAM lParam, HELPTOPIC topic)
+{
+    if (lstrcmpW(((NMLINK *)lParam)->item.szID, L"helplink") == 0)
+        OpenHelpTopic(topic);
+}
 
 static
 void InitComboBoxes(void)
@@ -132,10 +219,7 @@ void LoadDefaultSettings(void)
     g_oldSettings.iMmCombineButtons = 0;
     g_oldSettings.iLocation         = 3;  /* Bottom */
 	
-    g_oldSettings.b10StartMenu = FALSE;
-    g_oldSettings.b11StartMenu = TRUE;
-    g_oldSettings.bStartScreen = FALSE;
-    g_oldSettings.iPowerOptions = 5;
+    g_oldSettings.iPowerOptions = 5; /* Shutdown */
     g_oldSettings.bTrackProgs = TRUE;
     g_oldSettings.bTrackDocs = TRUE;
 	
@@ -189,9 +273,6 @@ void LoadExplorerSettings(void)
 		ReadInt(TEXT("MMTaskbarEnabled"), bAllDisplays);
 		ReadInt(TEXT("MMTaskbarMode"), iMmDisplays);
 		ReadInt(TEXT("MMTaskbarGlomLevel"), iMmCombineButtons);
-
-		ReadInt(TEXT("Start_ShowClassicMode"), b10StartMenu);
-		ReadInvertedBool(TEXT("Start_ShowClassicMode"), b11StartMenu);
 		
 		ReadDword(TEXT("Start_PowerButtonAction"));
 		if (status == ERROR_SUCCESS && dwType == REG_DWORD) {
@@ -240,9 +321,6 @@ void LoadExplorerSettings(void)
         KEY_QUERY_VALUE, &hKey);
     if (status == ERROR_SUCCESS)
     {
-		ReadInt(TEXT("UseImmersiveLauncher"), bStartScreen);
-		ReadInvertedBool(TEXT("UseImmersiveLauncher"), b10StartMenu);
-		
         ReadInt(TEXT("TaskbarAutohideOnDoubleClick"), bToggleAutoHide);
 		
 		ReadInt(TEXT("ShowUserTile"), bUserTile);
@@ -327,10 +405,6 @@ void UpdateExplorerControls(void)
     SetChecked(IDC_TB_ALLDISPLAYS,         g_oldSettings.bAllDisplays);
     SetComboIndex(IDC_TB_MMDISPLAYS,       g_oldSettings.iMmDisplays);
     SetComboIndex(IDC_TB_MMCOMBINEBUTTONS, g_oldSettings.iMmCombineButtons);
-	
-    SetChecked(IDC_SM_11STARTMENU,     g_oldSettings.b11StartMenu);
-    SetChecked(IDC_SM_10STARTMENU,    g_oldSettings.b10StartMenu);
-    SetChecked(IDC_SM_STARTSCREEN, g_oldSettings.bStartScreen);
 	
     SetComboIndex(IDC_SM_POWEROPTIONS, g_oldSettings.iPowerOptions);
     SetChecked(IDC_SM_TRACKPROGS, g_oldSettings.bTrackProgs);
@@ -531,47 +605,6 @@ BOOL WriteExplorerSettings(void)
 	UpdateDword(TEXT("Start_TrackProgs"), bTrackProgs);
 	UpdateDword(TEXT("Start_TrackDocs"), bTrackDocs);
 	
-	   if (HasChanged(b10StartMenu) || HasChanged(b11StartMenu))
-    {
-        status = RegCreateKeyEx(HKEY_CURRENT_USER, g_explorerKey, 0, NULL, 0,
-            KEY_SET_VALUE, NULL, &hKey, NULL);
-        if (status == ERROR_SUCCESS)
-        {
-            UpdateDword(TEXT("Start_ShowClassicMode"), b10StartMenu);
-            UpdateDwordInverted(TEXT("Start_ShowClassicMode"), b11StartMenu);
-
-            RegCloseKey(hKey);
-        }
-        else
-        {
-            RestoreSetting(b11StartMenu);
-            RestoreSetting(b10StartMenu);
-            
-            ret = FALSE;
-        }
-    }
-
-
-    if (HasChanged(bStartScreen) || HasChanged(b10StartMenu)) {
-        status = RegCreateKeyEx(HKEY_CURRENT_USER, g_explorerPatcherKey, 0, NULL,
-            0, KEY_SET_VALUE, NULL, &hKey, NULL);
-        if (status == ERROR_SUCCESS)
-        {
-            UpdateDword(TEXT("UseImmersiveLauncher"), bStartScreen);
-            UpdateDwordInverted(TEXT("UseImmersiveLauncher"), b10StartMenu);
-            RegCloseKey(hKey);
-        }
-        else
-        {
-            RestoreSetting(bStartScreen);
-			RestoreSetting(b10StartMenu);
-            ret = FALSE;
-        }
-    }
-
-    if (HasChanged(b10StartMenu))
-        SetCustomVisualFx();
-	
 	    if (HasChanged(bAnimations) || HasChanged(bWinXPowerShell) ||
         HasChanged(bShowDesktop))
     {
@@ -712,11 +745,10 @@ void ApplyExplorerSettings(void)
     BOOL bSendSettingChange = (HasChanged(bSmallButtons) ||
         HasChanged(bBadges) || HasChanged(iCombineButtons) ||
         HasChanged(bPeek) || HasChanged(bAllDisplays) ||
-        HasChanged(iMmDisplays) || HasChanged(iMmCombineButtons) || HasChanged(b10StartMenu) ||
-        HasChanged(b11StartMenu) || HasChanged(bStartScreen) || HasChanged(iPowerOptions) || HasChanged(bTrackProgs) || HasChanged(bTrackDocs) || HasChanged(bWin32Battery) || HasChanged(iClock) || HasChanged(iNetwork) || HasChanged(bUserTile) || HasChanged(bWin32Sound) || HasChanged(bAnimations) || HasChanged(bWinXPowerShell) ||
+        HasChanged(iMmDisplays) || HasChanged(iMmCombineButtons) ||
+        HasChanged(iPowerOptions) || HasChanged(bTrackProgs) || HasChanged(bTrackDocs) || HasChanged(bWin32Battery) || HasChanged(iClock) || HasChanged(iNetwork) || HasChanged(bUserTile) || HasChanged(bWin32Sound) || HasChanged(bAnimations) || HasChanged(bWinXPowerShell) ||
         HasChanged(bShowDesktop));
-    BOOL bRebuildStartMenu = HasChanged(b10StartMenu) ||
-        HasChanged(b11StartMenu) || HasChanged(bStartScreen) ||
+    BOOL bRebuildStartMenu =
         HasChanged(iPowerOptions) || HasChanged(bTrackProgs) ||
         HasChanged(bTrackDocs) || HasChanged(bUserTile);
     BOOL bExplorerSettingsChanged = bSendSettingChange || HasChanged(bLock);
@@ -794,6 +826,8 @@ void ApplySettings(void)
 {
     ApplyExplorerSettings();
     ApplyStuckRectsSettings();
+    if (StartIsBackExists())
+        NotifyStartIsBackSettingsChanged();
     g_oldSettings = g_newSettings;
 }
 
@@ -903,31 +937,12 @@ void HandleCommand(WORD iControl)
         g_newSettings.bAllDisplays = GetChecked();
         break;
 
-	case IDC_SM_10STARTMENU_CUSTOMIZE:
-        if (DialogBoxParam(
-            g_propSheet.hInstance, MAKEINTRESOURCE(IDC_SM_10DLG),
-            g_hDlg, StartMenu10DlgProc, (LPARAM)&g_explorerPatcherKey) == IDOK)
-            EnableApply();
-        return;
-
 	case IDC_SM_7STARTMENU_CUSTOMIZE:
         if (DialogBoxParam(
             g_propSheet.hInstance, MAKEINTRESOURCE(IDC_SM_7DLG),
             g_hDlg, StartMenu7DlgProc, (LPARAM)&g_explorerPatcherKey) == IDOK)
             EnableApply();
         return;
-		
-    case IDC_SM_11STARTMENU:
-        g_newSettings.b11StartMenu = GetChecked();
-        break;
-
-    case IDC_SM_10STARTMENU:
-        g_newSettings.b10StartMenu = GetChecked();
-        break;
-
-    case IDC_SM_STARTSCREEN:
-        g_newSettings.bStartScreen = GetChecked();
-        break;
 		
     case IDC_SM_TRACKPROGS:
         g_newSettings.bTrackProgs = GetChecked();
@@ -1023,24 +1038,70 @@ void HandleComboBoxSelChange(WORD iControl)
 #undef GetComboIndex
 }
 
-void CALLBACK MonitorEnumProc(HMONITOR hMon, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData) {
+BOOL CALLBACK MonitorEnumProc(HMONITOR hMon, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData) {
     int* count = (int*)dwData;
+    (void)hMon;
+    (void)hdcMonitor;
+    (void)lprcMonitor;
     (*count)++;
+    return TRUE;
 }
 
 /* Hide the Multi-Monitor related settings if there is only one monitor. */
 void DisplayMultiMonSettings(HWND hWnd) {
     int monitorCount = 0;
-    EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, (LPARAM)&monitorCount);
+    int nCmdShow;
 
-    if (monitorCount <= 1) {
-        ShowWindow(GetDlgItem(hWnd, IDC_TB_ALLDISPLAYS), SW_HIDE);
-        ShowWindow(GetDlgItem(hWnd, IDC_TB_MMDISPLAYS), SW_HIDE);
-        ShowWindow(GetDlgItem(hWnd, IDC_TB_MMCOMBINEBUTTONS), SW_HIDE);
-        ShowWindow(GetDlgItem(hWnd, IDC_TB_MMSTRING1), SW_HIDE);
-        ShowWindow(GetDlgItem(hWnd, IDC_TB_MMSTRING2), SW_HIDE);
-        ShowWindow(GetDlgItem(hWnd, IDC_TB_MMSTRING3), SW_HIDE);
+    EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, (LPARAM)&monitorCount);
+    nCmdShow = monitorCount > 1 ? SW_SHOW : SW_HIDE;
+
+    ShowWindow(GetDlgItem(hWnd, IDC_TB_ALLDISPLAYS), nCmdShow);
+    ShowWindow(GetDlgItem(hWnd, IDC_TB_MMDISPLAYS), nCmdShow);
+    ShowWindow(GetDlgItem(hWnd, IDC_TB_MMCOMBINEBUTTONS), nCmdShow);
+    ShowWindow(GetDlgItem(hWnd, IDC_TB_MMSTRING1), nCmdShow);
+    ShowWindow(GetDlgItem(hWnd, IDC_TB_MMSTRING2), nCmdShow);
+    ShowWindow(GetDlgItem(hWnd, IDC_TB_MMSTRING3), nCmdShow);
+}
+
+static
+void InitSettingsPage(HWND hWnd)
+{
+    g_hDlg = hWnd;
+    InitPage();
+    DisplayMultiMonSettings(hWnd);
+}
+
+static
+void HandleSettingsPageCommand(WPARAM wParam)
+{
+    switch HIWORD(wParam)
+    {
+    case BN_CLICKED:
+        HandleCommand(LOWORD(wParam));
+        break;
+
+    case CBN_SELCHANGE:
+        HandleComboBoxSelChange(LOWORD(wParam));
+        break;
     }
+}
+
+static
+BOOL HandleSettingsPageNotify(HWND hWnd, UINT code)
+{
+    switch (code)
+    {
+    case PSN_APPLY:
+        ApplySettings();
+        SetWindowLongPtr(hWnd, DWLP_MSGRESULT, (LONG_PTR)PSNRET_NOERROR);
+        return TRUE;
+
+    case PSN_KILLACTIVE:
+        SetWindowLongPtr(hWnd, DWLP_MSGRESULT, (LONG_PTR)FALSE);
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 INT_PTR CALLBACK GeneralPageProc(
@@ -1049,47 +1110,26 @@ INT_PTR CALLBACK GeneralPageProc(
     switch (uMsg)
     {
     case WM_INITDIALOG:
-        g_hDlg = hWnd;
-        InitPage();
+        InitSettingsPage(hWnd);
         return 0;
 
     case WM_COMMAND:
-        switch HIWORD(wParam)
-        {
-        case BN_CLICKED:
-            HandleCommand(LOWORD(wParam));
-            break;
-
-        case CBN_SELCHANGE:
-            HandleComboBoxSelChange(LOWORD(wParam));
-            break;
-        }
-
+        HandleSettingsPageCommand(wParam);
         return 0;
 
     case WM_NOTIFY:
-        switch (((NMHDR *)lParam)->code)
-        {
-        case PSN_APPLY:
-            ApplySettings();
-            SetWindowLongPtr(hWnd, DWLP_MSGRESULT, (LONG_PTR)PSNRET_NOERROR);
+        if (HandleSettingsPageNotify(hWnd, ((NMHDR *)lParam)->code))
             return TRUE;
 
-        case PSN_KILLACTIVE:
-            SetWindowLongPtr(hWnd, DWLP_MSGRESULT, (LONG_PTR)FALSE);
-            return TRUE;
-			
+        switch (((NMHDR *)lParam)->code)
+        {
         case NM_CLICK:
         case NM_RETURN:
-			if (lstrcmpW(((NMLINK *)lParam)->item.szID, L"helplink") == 0)
-			ShellExecute(NULL, TEXT("open"),
-				TEXT("https://github.com/spaac09/Ep_tbconf"),
-				NULL, NULL, SW_SHOWNORMAL);
+			HandleHelpLinkClick(lParam, HelpTopicTaskbar);
 			break;
         }
 
         return 0;
-
 #if 0
     case WM_SETTINGCHANGE:
         if (lstrcmpi((TCHAR *)lParam, TEXT("TraySettings")) == 0)
@@ -1108,100 +1148,28 @@ INT_PTR CALLBACK GeneralPageProc(
 }
 
 
-INT_PTR CALLBACK StartMenu10PageProc(
+INT_PTR CALLBACK StartMenuPageProc(
     HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     switch (uMsg)
     {
     case WM_INITDIALOG:
-        g_hDlg = hWnd;
-        InitPage();
+        InitSettingsPage(hWnd);
         return 0;
 
     case WM_COMMAND:
-        switch HIWORD(wParam)
-        {
-        case BN_CLICKED:
-            HandleCommand(LOWORD(wParam));
-            break;
-			
-        case CBN_SELCHANGE:
-            HandleComboBoxSelChange(LOWORD(wParam));
-            break;
-        
-        }
-
+        HandleSettingsPageCommand(wParam);
         return 0;
 
     case WM_NOTIFY:
+        if (HandleSettingsPageNotify(hWnd, ((NMHDR *)lParam)->code))
+            return TRUE;
+
         switch (((NMHDR *)lParam)->code)
         {
-        case PSN_APPLY:
-            ApplySettings();
-            SetWindowLongPtr(hWnd, DWLP_MSGRESULT, (LONG_PTR)PSNRET_NOERROR);
-            return TRUE;
-
-        case PSN_KILLACTIVE:
-            SetWindowLongPtr(hWnd, DWLP_MSGRESULT, (LONG_PTR)FALSE);
-            return TRUE;
-			
         case NM_CLICK:
         case NM_RETURN:
-			if (lstrcmpW(((NMLINK *)lParam)->item.szID, L"helplink") == 0)
-			ShellExecute(NULL, TEXT("open"),
-				TEXT("https://github.com/spaac09/Ep_tbconf"),
-				NULL, NULL, SW_SHOWNORMAL);
-			break;
-        }
-
-        return 0;
-    }
-
-    return 0;
-}
-
-
-INT_PTR CALLBACK StartMenu11PageProc(
-    HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
-    switch (uMsg)
-    {
-    case WM_INITDIALOG:
-        g_hDlg = hWnd;
-        InitPage();
-        return 0;
-
-    case WM_COMMAND:
-        switch HIWORD(wParam)
-        {
-        case BN_CLICKED:
-            HandleCommand(LOWORD(wParam));
-            break;
-        case CBN_SELCHANGE:
-            HandleComboBoxSelChange(LOWORD(wParam));
-            break;
-        }
-
-        return 0;
-
-    case WM_NOTIFY:
-        switch (((NMHDR *)lParam)->code)
-        {
-        case PSN_APPLY:
-            ApplySettings();
-            SetWindowLongPtr(hWnd, DWLP_MSGRESULT, (LONG_PTR)PSNRET_NOERROR);
-            return TRUE;
-
-        case PSN_KILLACTIVE:
-            SetWindowLongPtr(hWnd, DWLP_MSGRESULT, (LONG_PTR)FALSE);
-            return TRUE;
-			
-        case NM_CLICK:
-        case NM_RETURN:
-			if (lstrcmpW(((NMLINK *)lParam)->item.szID, L"helplink") == 0)
-			ShellExecute(NULL, TEXT("open"),
-				TEXT("https://github.com/spaac09/Ep_tbconf"),
-				NULL, NULL, SW_SHOWNORMAL);
+			HandleHelpLinkClick(lParam, HelpTopicStartMenu);
 			break;
         }
 
@@ -1218,36 +1186,16 @@ INT_PTR CALLBACK NotificationPageProc(
     switch (uMsg)
     {
     case WM_INITDIALOG:
-        g_hDlg = hWnd;
-        InitPage();
+        InitSettingsPage(hWnd);
         return 0;
 
     case WM_COMMAND:
-        switch HIWORD(wParam)
-        {
-        case BN_CLICKED:
-            HandleCommand(LOWORD(wParam));
-            break;
-        case CBN_SELCHANGE:
-            HandleComboBoxSelChange(LOWORD(wParam));
-            break;
-        }
-
+        HandleSettingsPageCommand(wParam);
         return 0;
 
     case WM_NOTIFY:
-        switch (((NMHDR *)lParam)->code)
-        {
-        case PSN_APPLY:
-            ApplySettings();
-            SetWindowLongPtr(hWnd, DWLP_MSGRESULT, (LONG_PTR)PSNRET_NOERROR);
+        if (HandleSettingsPageNotify(hWnd, ((NMHDR *)lParam)->code))
             return TRUE;
-
-        case PSN_KILLACTIVE:
-            SetWindowLongPtr(hWnd, DWLP_MSGRESULT, (LONG_PTR)FALSE);
-            return TRUE;
-
-        }
 
         return 0;
     }
@@ -1262,35 +1210,19 @@ INT_PTR CALLBACK AdvancedPageProc(
     switch (uMsg)
     {
     case WM_INITDIALOG:
-        g_hDlg = hWnd;
-        InitPage();
+        InitSettingsPage(hWnd);
         return 0;
 
     case WM_COMMAND:
-        switch HIWORD(wParam)
-        {
-        case BN_CLICKED:
-            HandleCommand(LOWORD(wParam));
-            break;
-        case CBN_SELCHANGE:
-            HandleComboBoxSelChange(LOWORD(wParam));
-            break;
-        }
-
+        HandleSettingsPageCommand(wParam);
         return 0;
 
     case WM_NOTIFY:
+        if (HandleSettingsPageNotify(hWnd, ((NMHDR *)lParam)->code))
+            return TRUE;
+
         switch (((NMHDR *)lParam)->code)
         {
-        case PSN_APPLY:
-            ApplySettings();
-            SetWindowLongPtr(hWnd, DWLP_MSGRESULT, (LONG_PTR)PSNRET_NOERROR);
-            return TRUE;
-
-        case PSN_KILLACTIVE:
-            SetWindowLongPtr(hWnd, DWLP_MSGRESULT, (LONG_PTR)FALSE);
-            return TRUE;
-
         case NM_CLICK:
         case NM_RETURN:
             if (lstrcmpW(((NMLINK *)lParam)->item.szID, L"restart") == 0)

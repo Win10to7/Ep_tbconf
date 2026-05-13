@@ -31,9 +31,7 @@ PROPSHEET g_propSheet;
 /* Property sheet dialog proc forward definitions */
 INT_PTR CALLBACK GeneralPageProc(
     HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-INT_PTR CALLBACK StartMenu10PageProc(
-    HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-INT_PTR CALLBACK StartMenu11PageProc(
+INT_PTR CALLBACK StartMenuPageProc(
     HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK AdvancedPageProc(
     HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -178,16 +176,6 @@ static LRESULT CALLBACK PropSheetSubclassProc(HWND hWnd, UINT uMsg, WPARAM wPara
 }
 
 
-int BuildNumber() {
-    OSVERSIONINFOEX versionInfo;
-    versionInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-
-    if (GetVersionEx((OSVERSIONINFO*)&versionInfo)) {
-        return versionInfo.dwBuildNumber;
-    } else {
-        return -1;
-    }
-}
 
 static
 int CALLBACK PropSheetProc(HWND hWnd, UINT uMsg, LPARAM lParam)
@@ -225,16 +213,7 @@ UINT DisplayPropSheet(UINT nStartPage) {
 
     InitPage(&psh, IDD_TB, GeneralPageProc);
 	
-	#ifdef BLUEPILL
-	InitPage(&psh, IDD_10SM, StartMenu10PageProc);
-	#else
-	if (BuildNumber() >= 21370) {
-	InitPage(&psh, IDD_11SM, StartMenu11PageProc);
-	}
-	else {
-	InitPage(&psh, IDD_10SM, StartMenu10PageProc);
-	}
-	#endif
+	InitPage(&psh, IDD_10SM, StartMenuPageProc);
 	InitPage(&psh, IDD_NA, NotificationPageProc);
 	InitPage(&psh, IDD_ADV, AdvancedPageProc);
 

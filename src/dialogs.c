@@ -419,13 +419,13 @@ static const STARTMENU_SETTING g_StartMenuSettings[] = {
     /* Run */
     { StartSettingCheckbox, L"ShowRun", L"@shell32.dll,-30483", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowRun", 0x00000001, 0x00000000, 0x00000000, NULL, 0, g_ShowRunPolicies, ARRAYSIZE(g_ShowRunPolicies) },
     /* Search Files ? */
-    { StartSettingGroup, L"SearchFiles", L"@shell32.dll,-30576", L"%SystemRoot%\\System32\\shell32.dll,235", NULL, NULL, 0, 0, 0, g_SearchFilesOptions, ARRAYSIZE(g_SearchFilesOptions), g_SearchFilesPolicies, ARRAYSIZE(g_SearchFilesPolicies) },
+    { StartSettingGroup, L"SearchFiles", L"@shell32.dll,-30576", L"%SystemRoot%\\System32\\shell32.dll,126", NULL, NULL, 0, 0, 0, g_SearchFilesOptions, ARRAYSIZE(g_SearchFilesOptions), g_SearchFilesPolicies, ARRAYSIZE(g_SearchFilesPolicies) },
     /* Search ? */
     { StartSettingCheckbox, L"SearchPrograms", L"@shell32.dll,-30569", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_SearchPrograms", 0x00000001, 0x00000000, 0x00000001, NULL, 0, g_SearchProgramsPolicies, ARRAYSIZE(g_SearchProgramsPolicies) },
     /* Sort by Name */
     { StartSettingCheckbox, L"SortByName", L"@shell32.dll,-30571", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_SortByName", 0x00000001, 0x00000000, 0x00000001, NULL, 0, NULL, 0 },
     /* Admin tools */
-    { StartSettingGroup, L"ShowAdminTools", L"@shell32.dll,-30515", L"%SystemRoot%\\System32\\main.cpl,500", NULL, NULL, 0, 0, 0, g_ShowAdminToolsOptions, ARRAYSIZE(g_ShowAdminToolsOptions), NULL, 0 },
+    { StartSettingGroup, L"ShowAdminTools", L"@shell32.dll,-30515", L"%SystemRoot%\\System32\\main.cpl,7", NULL, NULL, 0, 0, 0, g_ShowAdminToolsOptions, ARRAYSIZE(g_ShowAdminToolsOptions), NULL, 0 },
     /* Use large icons */
     { StartSettingCheckbox, L"UseLargeIcons", L"@shell32.dll,-30572", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_LargeMFUIcons", 0x00000001, 0x00000000, 0x00000001, NULL, 0, NULL, 0 },
     /* Videos */
@@ -567,11 +567,79 @@ BOOL StartMenuSettingRestricted(const STARTMENU_SETTING *pSetting)
     return FALSE;
 }
 
+static const WCHAR * const g_startIsBackStartMenuValues[] = {
+    L"Start_ShowVideos",
+    L"StartMenuFavorites",
+    L"Start_ShowRecentDocs",
+    L"Start_ShowMyComputer",
+    L"Start_ShowControlPanel",
+    L"Start_LargeMFUIcons",
+    L"Start_SortByName",
+    L"Start_NotifyNewApps",
+    L"Start_ShowUser",
+    L"Start_ShowMyDocs",
+    L"Start_ShowMyPics",
+    L"Start_ShowMyMusic",
+    L"Start_ShowDownloads",
+    L"Start_ShowNetPlaces",
+    L"Start_ShowPrinters",
+    L"Start_ShowSetProgramAccessAndDefaults",
+    L"Start_ShowRun",
+    L"Start_MinMFU",
+    L"Start_AutoCascade",
+    L"Start_JumpListItems",
+};
+
+static
+BOOL StartMenuValueUsesStartIsBack(PCWSTR pszValueName)
+{
+    UINT iValueName;
+
+    if (!pszValueName || !*pszValueName)
+        return FALSE;
+
+    for (iValueName = 0; iValueName < ARRAYSIZE(g_startIsBackStartMenuValues); iValueName++)
+    {
+        if (lstrcmpiW(g_startIsBackStartMenuValues[iValueName], pszValueName) == 0)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+static
+DWORD ReadStartMenuValue(PCWSTR pszValueName, DWORD dwDefaultValue)
+{
+    DWORD dwValue;
+
+    if (StartMenuValueUsesStartIsBack(pszValueName) &&
+        ReadStartIsBackDword(pszValueName, &dwValue))
+        return dwValue;
+
+    return ReadDwordWithDefault(HKEY_CURRENT_USER, g_explorerKey, pszValueName,
+        dwDefaultValue);
+}
+
+static
+BOOL WriteStartMenuValue(PCWSTR pszValueName, DWORD dwValue)
+{
+    if (!WriteDwordValue(HKEY_CURRENT_USER, g_explorerKey, pszValueName, dwValue))
+        return FALSE;
+    if (StartMenuValueUsesStartIsBack(pszValueName) &&
+        !WriteStartIsBackDword(pszValueName, dwValue))
+        return FALSE;
+    return TRUE;
+}
+
 static
 DWORD ReadAdminToolsValue(void)
 {
+    DWORD dwValue;
     DWORD dwRoot = ReadDwordWithDefault(HKEY_CURRENT_USER, g_explorerKey,
         L"Start_AdminToolsRoot", 0);
+
+    if (ReadStartIsBackDword(L"Start_AdminToolsRoot", &dwValue))
+        return dwValue;
     if (dwRoot)
         return 2;
 
@@ -593,8 +661,11 @@ BOOL WriteAdminToolsValue(DWORD dwValue)
                 L"StartMenuAdminTools", dwMenu);
         status = RegDeleteKeyValueW(HKEY_CURRENT_USER, g_explorerKey,
             L"Start_AdminToolsTemp");
-        return bOk && (status == ERROR_SUCCESS || status == ERROR_FILE_NOT_FOUND);
+        if (!(bOk && (status == ERROR_SUCCESS || status == ERROR_FILE_NOT_FOUND)))
+            return FALSE;
     }
+
+    return WriteStartIsBackDword(L"Start_AdminToolsRoot", dwValue);
 }
 
 static
@@ -658,84 +729,163 @@ BOOL LoadSettingIcon(PCWSTR pszBitmap, HICON *phIcon)
 }
 
 static
-BOOL AddThemeStateImage(HIMAGELIST hImageList, HTHEME hTheme,
-    int iPartId, int iStateId)
+BOOL CreateTransparentStateImageList(STARTMENU7STATE *pState)
 {
-    static const COLORREF crMask = RGB(255, 0, 255);
-    HDC hdcScreen = GetDC(NULL);
-    HDC hdcMem = CreateCompatibleDC(hdcScreen);
-    HBITMAP hBitmap;
-    HBITMAP hOldBitmap;
-    HBRUSH hBrush = CreateSolidBrush(crMask);
-    RECT rc = { 0, 0, 16, 16 };
-    RECT rcDraw = rc;
-    SIZE size = { 0, 0 };
+    static const WORD s_maskBits[16] = {
+        0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
+        0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
+        0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
+        0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF
+    };
+    HBITMAP hColor = NULL;
+    HBITMAP hMask = NULL;
+    BITMAPINFO bmi;
+    void *pvBits;
     BOOL bRet = FALSE;
+    UINT iImage;
+    HDC hdcScreen = GetDC(NULL);
 
-    hBitmap = CreateCompatibleBitmap(hdcScreen, 16, 16);
-    if (!hBitmap)
+    if (!hdcScreen)
+        return FALSE;
+
+    pState->hStateImages = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 8, 0);
+    if (!pState->hStateImages)
         goto Cleanup;
 
-    hOldBitmap = (HBITMAP)SelectObject(hdcMem, hBitmap);
-    FillRect(hdcMem, &rc, hBrush);
-    DeleteObject(hBrush);
-    hBrush = NULL;
+    ZeroMemory(&bmi, sizeof(bmi));
+    bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
+    bmi.bmiHeader.biWidth = 16;
+    bmi.bmiHeader.biHeight = -16;
+    bmi.bmiHeader.biPlanes = 1;
+    bmi.bmiHeader.biBitCount = 32;
+    bmi.bmiHeader.biCompression = BI_RGB;
+    hColor = CreateDIBSection(hdcScreen, &bmi, DIB_RGB_COLORS, &pvBits, NULL, 0);
+    if (!hColor)
+        goto Cleanup;
+    ZeroMemory(pvBits, 16 * 16 * 4);
 
-    if (SUCCEEDED(GetThemePartSize(hTheme, hdcMem, iPartId, iStateId, NULL,
-        TS_TRUE, &size)))
+    hMask = CreateBitmap(16, 16, 1, 1, s_maskBits);
+    if (!hMask)
+        goto Cleanup;
+
+    for (iImage = 0; iImage < 8; iImage++)
     {
-        rcDraw.left = (16 - size.cx) / 2;
-        rcDraw.top = (16 - size.cy) / 2;
-        rcDraw.right = rcDraw.left + size.cx;
-        rcDraw.bottom = rcDraw.top + size.cy;
+        if (ImageList_Add(pState->hStateImages, hColor, hMask) == -1)
+            goto Cleanup;
     }
 
-    if (SUCCEEDED(DrawThemeBackground(hTheme, hdcMem, iPartId, iStateId, &rcDraw, NULL)))
-        bRet = ImageList_AddMasked(hImageList, hBitmap, crMask) != -1;
-    SelectObject(hdcMem, hOldBitmap);
+    bRet = TRUE;
 
 Cleanup:
-    if (hBrush)
-        DeleteObject(hBrush);
-    if (hBitmap)
-        DeleteObject(hBitmap);
-    DeleteDC(hdcMem);
+    if (!bRet && pState->hStateImages)
+    {
+        ImageList_Destroy(pState->hStateImages);
+        pState->hStateImages = NULL;
+    }
+    if (hMask)
+        DeleteObject(hMask);
+    if (hColor)
+        DeleteObject(hColor);
     ReleaseDC(NULL, hdcScreen);
     return bRet;
 }
 
 static
-BOOL CreateStateImageList(STARTMENU7STATE *pState)
+BOOL GetTreeItemStateRect(STARTMENU7STATE *pState, HTREEITEM hItem, RECT *prcState)
+{
+    RECT rcText;
+    int cxState = 16;
+    int cyState = 16;
+
+    if (!prcState)
+        return FALSE;
+
+    ZeroMemory(prcState, sizeof(*prcState));
+    rcText.left = 0;
+    rcText.top = 0;
+    rcText.right = 0;
+    rcText.bottom = 0;
+    if (!TreeView_GetItemRect(pState->hTree, hItem, &rcText, TRUE))
+        return FALSE;
+
+    if (pState->hStateImages)
+        ImageList_GetIconSize(pState->hStateImages, &cxState, &cyState);
+
+    prcState->right = rcText.left;
+    prcState->left = prcState->right - cxState;
+    prcState->top = rcText.top + ((rcText.bottom - rcText.top) - cyState) / 2;
+    prcState->bottom = prcState->top + cyState;
+    return TRUE;
+}
+
+static
+BOOL DrawTreeItemState(HWND hWnd, HDC hdc, RECT *prcState,
+    STARTMENU_NODE_KIND kind, BOOL bChecked, BOOL bDisabled)
 {
     HTHEME hTheme;
-    BOOL bRet;
+    int iPartId;
+    int iStateId;
+    RECT rcDraw;
+    SIZE size;
+    UINT uState;
 
-    pState->hStateImages = ImageList_Create(16, 16, ILC_COLORDDB | ILC_MASK, 8, 0);
-    if (!pState->hStateImages)
+    if (!prcState)
         return FALSE;
 
-    hTheme = OpenThemeData(g_hDlg, L"Button");
-    if (!hTheme)
-        return FALSE;
+    hTheme = OpenThemeData(hWnd, L"Button");
+    if (hTheme)
+    {
+        iPartId = kind == StartNodeRadio ? BP_RADIOBUTTON : BP_CHECKBOX;
+        if (kind == StartNodeRadio)
+        {
+            if (bDisabled)
+                iStateId = bChecked ? RBS_CHECKEDDISABLED : RBS_UNCHECKEDDISABLED;
+            else
+                iStateId = bChecked ? RBS_CHECKEDNORMAL : RBS_UNCHECKEDNORMAL;
+        }
+        else
+        {
+            if (bDisabled)
+                iStateId = bChecked ? CBS_CHECKEDDISABLED : CBS_UNCHECKEDDISABLED;
+            else
+                iStateId = bChecked ? CBS_CHECKEDNORMAL : CBS_UNCHECKEDNORMAL;
+        }
 
-    bRet = AddThemeStateImage(pState->hStateImages, hTheme,
-            BP_CHECKBOX, CBS_UNCHECKEDNORMAL) &&
-        AddThemeStateImage(pState->hStateImages, hTheme,
-            BP_CHECKBOX, CBS_CHECKEDNORMAL) &&
-        AddThemeStateImage(pState->hStateImages, hTheme,
-            BP_RADIOBUTTON, RBS_UNCHECKEDNORMAL) &&
-        AddThemeStateImage(pState->hStateImages, hTheme,
-            BP_RADIOBUTTON, RBS_CHECKEDNORMAL) &&
-        AddThemeStateImage(pState->hStateImages, hTheme,
-            BP_CHECKBOX, CBS_UNCHECKEDDISABLED) &&
-        AddThemeStateImage(pState->hStateImages, hTheme,
-            BP_CHECKBOX, CBS_CHECKEDDISABLED) &&
-        AddThemeStateImage(pState->hStateImages, hTheme,
-            BP_RADIOBUTTON, RBS_UNCHECKEDDISABLED) &&
-        AddThemeStateImage(pState->hStateImages, hTheme,
-            BP_RADIOBUTTON, RBS_CHECKEDDISABLED);
-    CloseThemeData(hTheme);
-    return bRet;
+        rcDraw = *prcState;
+        if (SUCCEEDED(GetThemePartSize(hTheme, hdc, iPartId, iStateId, NULL,
+            TS_TRUE, &size)))
+        {
+            rcDraw.left += ((prcState->right - prcState->left) - size.cx) / 2;
+            rcDraw.top += ((prcState->bottom - prcState->top) - size.cy) / 2;
+            rcDraw.right = rcDraw.left + size.cx;
+            rcDraw.bottom = rcDraw.top + size.cy;
+        }
+
+        if (SUCCEEDED(DrawThemeBackground(hTheme, hdc, iPartId, iStateId, &rcDraw, NULL)))
+        {
+            CloseThemeData(hTheme);
+            return TRUE;
+        }
+        CloseThemeData(hTheme);
+    }
+
+    rcDraw = *prcState;
+    rcDraw.left += ((prcState->right - prcState->left) - 13) / 2;
+    rcDraw.top += ((prcState->bottom - prcState->top) - 13) / 2;
+    rcDraw.right = rcDraw.left + 13;
+    rcDraw.bottom = rcDraw.top + 13;
+    uState = kind == StartNodeRadio ? DFCS_BUTTONRADIO : DFCS_BUTTONCHECK;
+    if (bChecked)
+        uState |= DFCS_CHECKED;
+    if (bDisabled)
+        uState |= DFCS_INACTIVE;
+    return DrawFrameControl(hdc, &rcDraw, DFC_BUTTON, uState);
+}
+
+static
+BOOL CreateStateImageList(STARTMENU7STATE *pState)
+{
+    return CreateTransparentStateImageList(pState);
 }
 
 static
@@ -783,6 +933,33 @@ void SetTreeItemStateImage(HWND hTree, HTREEITEM hItem, int iImage)
     TreeView_SetItemState(hTree, hItem, INDEXTOSTATEIMAGEMASK(iImage),
         TVIS_STATEIMAGEMASK);
 }
+static BOOL SettingCheckedValue(STARTMENU7STATE *pState, UINT iSetting);
+static BOOL OptionCheckedValue(STARTMENU7STATE *pState, UINT iSetting, UINT iOption);
+
+static
+void DrawStartMenuNodeState(STARTMENU7STATE *pState,
+    NMTVCUSTOMDRAW *pCustomDraw)
+{
+    STARTMENU_NODE *pNode;
+    RECT rcState;
+    BOOL bChecked;
+
+    if (!ReadTreeItemNode(pState->hTree, (HTREEITEM)pCustomDraw->nmcd.dwItemSpec, &pNode))
+        return;
+    if (pNode->kind != StartNodeCheckbox && pNode->kind != StartNodeRadio)
+        return;
+    if (!GetTreeItemStateRect(pState, (HTREEITEM)pCustomDraw->nmcd.dwItemSpec, &rcState))
+        return;
+
+    if (pNode->kind == StartNodeCheckbox)
+        bChecked = SettingCheckedValue(pState, pNode->iSetting);
+    else
+        bChecked = OptionCheckedValue(pState, pNode->iSetting, pNode->iOption);
+
+    DrawTreeItemState(pState->hTree, pCustomDraw->nmcd.hdc, &rcState,
+        pNode->kind, bChecked, pNode->bRestricted);
+}
+
 
 static
 void LoadLegacyRegSettings(void)
@@ -807,7 +984,6 @@ void LoadLegacyRegSettings(void)
         KEY_QUERY_VALUE, &hKey);
     if (status == ERROR_SUCCESS)
     {
-        ReadInt(TEXT("StartUI_EnableRoundedCorners"), iMode);
         RegCloseKey(hKey);
     }
 
@@ -864,8 +1040,6 @@ void InitComboBoxes(void)
         SendDlgItemMessage(g_hDlg, iControl, CB_ADDSTRING, 0L, (LPARAM)&text); \
     }
 
-    InitCombo(IDC_SM_10DLG_MODE, IDS_SM_10DLG_MODE_DEFAULT, 3);
-
 #undef InitCombo
 }
 
@@ -900,8 +1074,6 @@ BOOL WriteLegacyRegSettings(void)
     if (status == ERROR_SUCCESS)
     {
         dwData = (DWORD)g_newSettings.iMode;
-        if (RegSetValueEx(hKey, TEXT("StartUI_EnableRoundedCorners"), 0,
-            REG_DWORD, (BYTE *)&dwData, sizeof(DWORD)) != ERROR_SUCCESS)
         {
             ret = FALSE;
         }
@@ -965,7 +1137,6 @@ void DrawStartMenuNodeImage(STARTMENU7STATE *pState,
     RECT rcItem;
     RECT rcIcon;
     RECT rcFill;
-    RECT rcFocus;
     RECT rcMeasure;
     TVITEMW item;
     WCHAR szText[256] = L"";
@@ -1007,9 +1178,10 @@ void DrawStartMenuNodeImage(STARTMENU7STATE *pState,
     cyImage = GetSystemMetrics(SM_CYSMICON);
     crTextOld = SetTextColor(pCustomDraw->nmcd.hdc, pCustomDraw->clrText);
     crBkOld = SetBkColor(pCustomDraw->nmcd.hdc, pCustomDraw->clrTextBk);
-    crIconBk = (COLORREF)SendMessage(pState->hTree, TVM_GETBKCOLOR, 0L, 0L);
-    if (crIconBk == CLR_NONE)
-        crIconBk = pCustomDraw->clrTextBk;
+    if (SendMessage(pState->hTree, TVM_GETBKCOLOR, 0L, 0L) == CLR_NONE)
+        crIconBk = GetSysColor(COLOR_WINDOW);
+    else
+        crIconBk = TreeView_GetBkColor(pState->hTree);
 
     hFont = (HFONT)SendMessage(pState->hTree, WM_GETFONT, 0L, 0L);
     hOldFont = hFont ? SelectObject(pCustomDraw->nmcd.hdc, hFont) : NULL;
@@ -1028,15 +1200,10 @@ void DrawStartMenuNodeImage(STARTMENU7STATE *pState,
     ExtTextOutW(pCustomDraw->nmcd.hdc, 0, 0, ETO_OPAQUE, &rcIcon, NULL, 0, NULL);
 
     rcFill = rcText;
-    rcFill.left = rcIcon.right;
-    rcFill.right = rcMeasure.right;
-    if (pCustomDraw->nmcd.uItemState & CDIS_SELECTED)
-    {
-        rcFill.left -= 2;
-        rcFill.right += 3;
-        if (rcFill.right > rcItem.right)
-            rcFill.right = rcItem.right;
-    }
+    rcFill.left = rcIcon.right - 2;
+    rcFill.right = rcMeasure.right + 3;
+    if (rcFill.right > rcItem.right)
+        rcFill.right = rcItem.right;
     SetBkColor(pCustomDraw->nmcd.hdc, pCustomDraw->clrTextBk);
     ExtTextOutW(pCustomDraw->nmcd.hdc, 0, 0, ETO_OPAQUE, &rcFill, NULL, 0, NULL);
 
@@ -1050,11 +1217,7 @@ void DrawStartMenuNodeImage(STARTMENU7STATE *pState,
     rcText.right = rcMeasure.right;
     DrawTextW(pCustomDraw->nmcd.hdc, szText, -1, &rcText,
         DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
-    if (pCustomDraw->nmcd.uItemState & CDIS_FOCUS)
-    {
-        rcFocus = rcFill;
-        DrawFocusRect(pCustomDraw->nmcd.hdc, &rcFocus);
-    }
+
     if (hOldFont)
         SelectObject(pCustomDraw->nmcd.hdc, hOldFont);
     SetTextColor(pCustomDraw->nmcd.hdc, crTextOld);
@@ -1225,6 +1388,7 @@ LRESULT HandleStartMenuTreeCustomDraw(STARTMENU7STATE *pState,
     case CDDS_ITEMPREPAINT:
         return CDRF_NOTIFYPOSTPAINT;
     case CDDS_ITEMPOSTPAINT:
+        DrawStartMenuNodeState(pState, pCustomDraw);
         DrawStartMenuNodeImage(pState, pCustomDraw);
         return CDRF_DODEFAULT;
     default:
@@ -1267,11 +1431,12 @@ void LoadStartMenuState(STARTMENU7STATE *pState)
     UINT iSetting;
 
     InitializeStartMenuDefaults(pState);
-    pState->cPrograms = ReadDwordWithDefault(HKEY_CURRENT_USER, g_explorerKey,
-        L"Start_MinMFU", STARTMENU_RECENT_PROGRAMS_DEFAULT);
-    pState->cItems = ReadDwordWithDefaultBounded(HKEY_CURRENT_USER, g_explorerKey,
-        L"Start_JumpListItems", STARTMENU_JUMPLIST_ITEMS_DEFAULT, 0,
-        STARTMENU_JUMPLIST_ITEMS_MAX);
+    pState->cPrograms = ReadStartMenuValue(L"Start_MinMFU",
+        STARTMENU_RECENT_PROGRAMS_DEFAULT);
+    pState->cItems = ReadStartMenuValue(L"Start_JumpListItems",
+        STARTMENU_JUMPLIST_ITEMS_DEFAULT);
+    if (pState->cItems > STARTMENU_JUMPLIST_ITEMS_MAX)
+        pState->cItems = STARTMENU_JUMPLIST_ITEMS_MAX;
 
     for (iSetting = 0; iSetting < ARRAYSIZE(g_StartMenuSettings); iSetting++)
     {
@@ -1283,17 +1448,20 @@ void LoadStartMenuState(STARTMENU7STATE *pState)
             pState->dwValues[iSetting] = ReadAdminToolsValue();
             continue;
         }
+        if (lstrcmpiW(pSetting->pszKey, L"MyGames") == 0 &&
+            ReadStartIsBackDword(L"Start_ShowNetConn",
+                &pState->dwValues[iSetting]))
+            continue;
+
 
         if (pSetting->kind == StartSettingCheckbox)
         {
-            pState->dwValues[iSetting] = ReadDwordWithDefault(HKEY_CURRENT_USER,
-                pSetting->pszRegPath, pSetting->pszValueName,
-                pSetting->dwDefaultValue);
+            pState->dwValues[iSetting] = ReadStartMenuValue(
+                pSetting->pszValueName, pSetting->dwDefaultValue);
         }
         else if (pSetting->cOptions)
         {
-            pState->dwValues[iSetting] = ReadDwordWithDefault(HKEY_CURRENT_USER,
-                pSetting->pOptions[0].pszRegPath,
+            pState->dwValues[iSetting] = ReadStartMenuValue(
                 pSetting->pOptions[0].pszValueName,
                 pSetting->pOptions[0].dwDefaultValue);
         }
@@ -1555,14 +1723,14 @@ BOOL WriteStartMenuSettings(const STARTMENU7STATE *pState)
     UINT iSetting;
 
     if (IsWindowEnabled(GetDlgItem(pState->hDlg, IDC_SM_MFU_PROGRAMS)) &&
-        !WriteDwordValue(HKEY_CURRENT_USER, g_explorerKey,
-            L"Start_MinMFU", pState->cPrograms > STARTMENU_RECENT_PROGRAMS_MAX ?
+        !WriteStartMenuValue(L"Start_MinMFU",
+            pState->cPrograms > STARTMENU_RECENT_PROGRAMS_MAX ?
             STARTMENU_RECENT_PROGRAMS_MAX : pState->cPrograms))
         return FALSE;
 
     if (IsWindowEnabled(GetDlgItem(pState->hDlg, IDC_SM_MFU_ITEMS)) &&
-        !WriteDwordValue(HKEY_CURRENT_USER, g_explorerKey,
-            L"Start_JumpListItems", pState->cItems > STARTMENU_JUMPLIST_ITEMS_MAX ?
+        !WriteStartMenuValue(L"Start_JumpListItems",
+            pState->cItems > STARTMENU_JUMPLIST_ITEMS_MAX ?
             STARTMENU_JUMPLIST_ITEMS_MAX : pState->cItems))
         return FALSE;
 
@@ -1578,18 +1746,21 @@ BOOL WriteStartMenuSettings(const STARTMENU7STATE *pState)
                 return FALSE;
             continue;
         }
+        if (lstrcmpiW(pSetting->pszKey, L"MyGames") == 0 &&
+            !WriteStartIsBackDword(L"Start_ShowNetConn",
+                pState->dwValues[iSetting]))
+            return FALSE;
+
 
         if (pSetting->kind == StartSettingCheckbox)
         {
-            if (!WriteDwordValue(HKEY_CURRENT_USER, pSetting->pszRegPath,
-                pSetting->pszValueName, pState->dwValues[iSetting]))
+            if (!WriteStartMenuValue(pSetting->pszValueName,
+                pState->dwValues[iSetting]))
                 return FALSE;
         }
         else if (pSetting->cOptions)
         {
-            if (!WriteDwordValue(HKEY_CURRENT_USER,
-                pSetting->pOptions[0].pszRegPath,
-                pSetting->pOptions[0].pszValueName,
+            if (!WriteStartMenuValue(pSetting->pOptions[0].pszValueName,
                 pState->dwValues[iSetting]))
                 return FALSE;
         }
@@ -1629,6 +1800,8 @@ BOOL InitializeStartMenu7Dialog(HWND hWnd)
         (DWORD_PTR)&g_startMenu7);
     TreeView_SelectSetFirstVisible(g_startMenu7.hTree,
         TreeView_GetRoot(g_startMenu7.hTree));
+    SendMessage(g_startMenu7.hTree, WM_CHANGEUISTATE,
+        MAKELONG(UIS_SET, UISF_HIDEFOCUS), 0L);
     return TRUE;
 }
 
@@ -1764,8 +1937,7 @@ INT_PTR CALLBACK StartMenu7DlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
                 return TRUE;
             }
 
-            NotifyTraySettingsChanged(TRUE);
-
+            
             CleanupStartMenu7Dialog();
             EndDialog(hWnd, IDOK);
             return TRUE;

@@ -25,6 +25,12 @@ _Success_(return)
 BOOL SetCustomVisualFx(void);
 
 void NotifyTraySettingsChanged(BOOL bRebuildStartMenu);
+BOOL StartIsBackExists(void);
+BOOL ReadStartIsBackDword(PCWSTR pszValueName, DWORD *pdwValue);
+BOOL WriteStartIsBackDword(PCWSTR pszValueName, DWORD dwValue);
+void NotifyStartIsBackSettingsChanged(void);
+
+
 
 
 #endif  /* !defined(UTIL_H) */
