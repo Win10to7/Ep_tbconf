@@ -54,6 +54,9 @@ INT_PTR CALLBACK StartMenu10DlgProc(
 INT_PTR CALLBACK StartMenu7DlgProc(
 	HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
+INT_PTR CALLBACK NotificationPageProc(
+    HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
 typedef struct tagTBSETTINGS
 {
     BOOL bLock;
@@ -894,6 +897,58 @@ void RestartExplorer(void)
             SW_SHOWNORMAL);
     }
 }
+static
+int CALLBACK NotificationDialogProc(HWND hWnd, UINT uMsg, LPARAM lParam)
+{
+    UNREFERENCED_PARAMETER(lParam);
+
+    if (uMsg == PSCB_INITIALIZED)
+        g_propSheet.hWnd = hWnd;
+
+    return 0;
+}
+
+static
+void OpenNotificationDialog(HWND hParent)
+{
+    PROPSHEETPAGE psp;
+    PROPSHEETHEADER psh;
+    HPROPSHEETPAGE hPage;
+    HWND hOldDlg = g_hDlg;
+    HWND hOldPropSheet = g_propSheet.hWnd;
+    TCHAR szCaption[32];
+
+    memset(&psp, 0, sizeof(PROPSHEETPAGE));
+    psp.dwSize = sizeof(PROPSHEETPAGE);
+    psp.hInstance = g_propSheet.hInstance;
+    psp.pszTemplate = MAKEINTRESOURCE(IDD_NA);
+    psp.pfnDlgProc = NotificationPageProc;
+
+    hPage = CreatePropertySheetPage(&psp);
+    if (!hPage)
+        return;
+
+    memset(&psh, 0, sizeof(PROPSHEETHEADER));
+    psh.dwSize = sizeof(PROPSHEETHEADER);
+    psh.dwFlags = PSH_NOAPPLYNOW | PSH_NOCONTEXTHELP | PSH_USECALLBACK;
+    psh.hwndParent = hParent;
+    psh.hInstance = g_propSheet.hInstance;
+    psh.pszCaption = szCaption;
+    psh.nPages = 1;
+    psh.phpage = &hPage;
+    psh.pfnCallback = NotificationDialogProc;
+
+    if (!LoadString(g_propSheet.hInstance, IDS_NA_DIALOG,
+        szCaption, ARRAYSIZE(szCaption)))
+    {
+        szCaption[0] = TEXT('\0');
+    }
+
+    PropertySheet(&psh);
+    g_propSheet.hWnd = hOldPropSheet;
+    g_hDlg = hOldDlg;
+}
+
 
 static
 void HandleCommand(WORD iControl)
@@ -975,6 +1030,10 @@ void HandleCommand(WORD iControl)
     case IDC_ADV_WINXPOWERSHELL:
         g_newSettings.bWinXPowerShell = GetChecked();
         break;
+
+    case IDC_ADV_NOTIFICATIONAREA:
+        OpenNotificationDialog(g_hDlg);
+        return;
 
     case IDC_ADV_SHOWDESKTOP:
         g_newSettings.bShowDesktop = GetChecked();

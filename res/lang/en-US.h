@@ -1,4 +1,4 @@
-#define RES_LANG         LANG_ENGLISH
+﻿#define RES_LANG         LANG_ENGLISH
 #define RES_SUBLANG      SUBLANG_ENGLISH_US
 
 #define S_ERROR          "Error"
@@ -26,7 +26,7 @@
 #define S_TB_TB_7               "Taskbar appearance"
 #define S_TB_SMALLBUTTONS_7		"Use small &icons"
 #define S_TB_NA_7               "Notification area"
-#define S_TB_TRAYWND_7          "Customise which icons and notifications appear in the notification area."
+#define S_TB_TRAYWND_7          "Customize which icons and notifications appear in the notification area."
 #define S_TB_PEEKBOX_7          "Preview desktop with Aero Peek"
 #define S_TB_PEEKBOX_TEXT_7     "Temporarily view the desktop when you move your mouse to the Show desktop button at end of the taskbar."
 #define S_TB_PEEK_7             "Use Aero &Peek to preview the desktop"
@@ -47,9 +47,7 @@
 #define S_SM_MFU_PROGRAMS "&Number of recent programs to display:"
 #define S_SM_MFU_ITEMS "Number of recent items to display in &Jump Lists:"
 
-#define S_NA  "Notification Area"
-#define S_NA_ICON  "Icons"
-#define S_NA_ICON_TEXT "You can keep the notification area uncluttered by hiding icons that you have not clicked recently."
+#define S_NA  "Tray Area"
 #define S_NA_SYSICON  "System icons"
 #define S_NA_WIN32BATTERY "Use legacy battery flyout"
 #define S_NA_WIN32SOUND "Use legacy sound flyout"
@@ -66,9 +64,10 @@
 #define S_ADV_NAVIGATION      "Navigation"
 #define S_ADV_WINXPOWERSHELL  "Replace Command Prompt with &PowerShell in the menu when right-clicking the start button or pressing Windows+X *"
 
-#define S_ADV_MISC            "Miscellaneous"
-#define S_ADV_SHOWDESKTOP     "Enable Show &Desktop button"
-#define S_ADV_TOGGLEAUTOHIDE  "Toggle &hiding the taskbar when double clicking it **"
+#define S_ADV_MISC              "Miscellaneous"
+#define S_ADV_SHOWDESKTOP       "Enable Show &Desktop button"
+#define S_ADV_TOGGLEAUTOHIDE    "Toggle &hiding the taskbar when double clicking it **"
+#define S_ADV_NOTIFICATIONAREA  "&Tray area"
 
 #define S_ADV_RESTARTEXPLORER_T  "* Requires restarting Explorer after applying to take effect"
 #define S_ADV_EXPLORERPATCHER_T  "** Requires ExplorerPatcher or similar software"

@@ -32,9 +32,10 @@
 #define S_ADV_NAVIGATION      "Navegación"
 #define S_ADV_WINXPOWERSHELL  "Reemplazar la Consola de Comandos por &PowerShell en el menú al hacer clic derecho en el menú inicio o presionar Windows+X *"
 
-#define S_ADV_MISC            "Varios"
-#define S_ADV_SHOWDESKTOP     "Habilitar botón Mostrar &escritorio **"
-#define S_ADV_TOGGLEAUTOHIDE  "Alternar &ocultar la barra de tareas al hacerle doble clic **"
+#define S_ADV_MISC              "Varios"
+#define S_ADV_SHOWDESKTOP       "Habilitar botón Mostrar &escritorio **"
+#define S_ADV_TOGGLEAUTOHIDE    "Alternar &ocultar la barra de tareas al hacerle doble clic **"
+#define S_ADV_NOTIFICATIONAREA  "Área de &notificación..."
 
 #define S_ADV_RESTARTEXPLORER_T  "* Require reiniciar Explorer luego de aplicar para que surja efecto"
 #define S_ADV_EXPLORERPATCHER_T  "** Requiere ExplorerPatcher o software similar"

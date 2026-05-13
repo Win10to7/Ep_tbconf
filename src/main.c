@@ -35,8 +35,6 @@ INT_PTR CALLBACK StartMenuPageProc(
     HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK AdvancedPageProc(
     HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-INT_PTR CALLBACK NotificationPageProc(
-    HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 static
 void InitPage(PROPSHEETHEADER *ppsh, WORD idDlg, DLGPROC dlgProc)
@@ -198,7 +196,7 @@ _Success_(return < RETURN_ERROR)
 static
 UINT DisplayPropSheet(UINT nStartPage) {
     PROPSHEETHEADER psh;
-    HPROPSHEETPAGE hpsp[4];
+    HPROPSHEETPAGE hpsp[3];
 
     memset(&psh, 0, sizeof(PROPSHEETHEADER));
     psh.dwSize = sizeof(PROPSHEETHEADER);
@@ -214,7 +212,6 @@ UINT DisplayPropSheet(UINT nStartPage) {
     InitPage(&psh, IDD_TB, GeneralPageProc);
 	
 	InitPage(&psh, IDD_10SM, StartMenuPageProc);
-	InitPage(&psh, IDD_NA, NotificationPageProc);
 	InitPage(&psh, IDD_ADV, AdvancedPageProc);
 
     INT_PTR ret = PropertySheet(&psh);
