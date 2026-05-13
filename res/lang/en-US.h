@@ -33,8 +33,6 @@
 
 #define S_SM  "Start Menu"
 
-#define S_SM_DEFAULTMENU  "Default Start menu"
-#define S_SM_STARTSCREEN  "Windows 8 Start screen"
 #define S_SM_TEXT_7       "To customize how links, icons, and menus look and behave in the Start menu, click Customize."
 
 #define S_SM_10DLG  "Customize Start Menu"
@@ -93,10 +91,6 @@
 #define S_SM_TRACKPROGS	"Store and display recently opened &programs in the Start menu"
 #define S_SM_TRACKDOCS	"Store and display recently opened items in the Start &menu and the taskbar"
 #define S_SM_HELPLINK	"<A ID=""helplink"">How do I change the way the Start menu looks?</A>"
-
-#define S_SM_10DLG_MODE_DEFAULT      "Default look"
-#define S_SM_10DLG_MODE_ROUNDED      "Rounded corners"
-#define S_SM_10DLG_MODE_FLOATING     "Rounded corners, floating menu"
 
 #define S_NA_CLOCK_WIN32      "Windows 7"
 #define S_NA_CLOCK_10         "Windows 10"

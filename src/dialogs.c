@@ -36,7 +36,7 @@ static const WCHAR g_policyExplorerAltKey[] =
 
 enum
 {
-    STARTMENU_RECENT_PROGRAMS_DEFAULT = 9,
+    STARTMENU_RECENT_PROGRAMS_DEFAULT = 10,
     STARTMENU_RECENT_PROGRAMS_MAX = 30,
     STARTMENU_JUMPLIST_ITEMS_DEFAULT = 10,
     STARTMENU_JUMPLIST_ITEMS_MAX = 60,
@@ -584,7 +584,6 @@ static const WCHAR * const g_startIsBackStartMenuValues[] = {
     L"Start_ShowNetPlaces",
     L"Start_ShowPrinters",
     L"Start_ShowSetProgramAccessAndDefaults",
-    L"Start_ShowRun",
     L"Start_MinMFU",
     L"Start_AutoCascade",
     L"Start_JumpListItems",
@@ -1030,17 +1029,6 @@ void SetRanges(void)
 static
 void InitComboBoxes(void)
 {
-    int iElement;
-    TCHAR text[60] = TEXT("\0");
-
-#define InitCombo(iControl, iString, nElements) \
-    for (iElement = 0; iElement < nElements; iElement++) { \
-        LoadString(g_propSheet.hInstance, iString + iElement, \
-            (TCHAR *)&text, 59); \
-        SendDlgItemMessage(g_hDlg, iControl, CB_ADDSTRING, 0L, (LPARAM)&text); \
-    }
-
-#undef InitCombo
 }
 
 static
@@ -1936,7 +1924,6 @@ INT_PTR CALLBACK StartMenu7DlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
                 ShowMessageFromAppResource(hWnd, IDS_ERROR_GENERIC, IDS_ERROR, MB_OK);
                 return TRUE;
             }
-
             
             CleanupStartMenu7Dialog();
             EndDialog(hWnd, IDOK);

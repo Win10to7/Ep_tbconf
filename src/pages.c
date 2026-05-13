@@ -906,8 +906,8 @@ void HandleCommand(WORD iControl)
     switch (iControl)
     {
     case IDC_TB_TRAYWND:
-        ShellExecute(NULL, TEXT("open"), TEXT("control.exe"),
-            TEXT("/name Microsoft.NotificationAreaIcons"),
+        ShellExecute(NULL, TEXT("open"), TEXT("shell:::{05d7b0f4-2121-4eff-bf6b-ed3f69b894d9}"),
+            NULL,
             NULL, SW_SHOWNORMAL);
         return;
 
@@ -1092,6 +1092,7 @@ BOOL HandleSettingsPageNotify(HWND hWnd, UINT code)
     switch (code)
     {
     case PSN_APPLY:
+        NotifyTraySettingsChanged(TRUE);
         ApplySettings();
         SetWindowLongPtr(hWnd, DWLP_MSGRESULT, (LONG_PTR)PSNRET_NOERROR);
         return TRUE;
