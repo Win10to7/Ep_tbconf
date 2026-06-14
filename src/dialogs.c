@@ -9,9 +9,6 @@
 #include "app.h"
 #include "resource.h"
 #include "util.h"
-#include <commctrl.h>
-#include <shellapi.h>
-#include <shlwapi.h>
 #include <uxtheme.h>
 #include <vssym32.h>
 #include <windowsx.h>
@@ -418,9 +415,9 @@ static const STARTMENU_SETTING g_StartMenuSettings[] = {
     { StartSettingGroup, L"RecordedTV", L"@shell32.dll,-30605", L"%SystemRoot%\\System32\\imageres.dll,193", NULL, NULL, 0, 0, 0, g_RecordedTVOptions, ARRAYSIZE(g_RecordedTVOptions), g_RecordedTVPolicies, ARRAYSIZE(g_RecordedTVPolicies) },
     /* Run */
     { StartSettingCheckbox, L"ShowRun", L"@shell32.dll,-30483", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_ShowRun", 0x00000001, 0x00000000, 0x00000000, NULL, 0, g_ShowRunPolicies, ARRAYSIZE(g_ShowRunPolicies) },
-    /* Search Files ? */
+    /* Search Files */
     { StartSettingGroup, L"SearchFiles", L"@shell32.dll,-30576", L"%SystemRoot%\\System32\\shell32.dll,126", NULL, NULL, 0, 0, 0, g_SearchFilesOptions, ARRAYSIZE(g_SearchFilesOptions), g_SearchFilesPolicies, ARRAYSIZE(g_SearchFilesPolicies) },
-    /* Search ? */
+    /* Search Programs */
     { StartSettingCheckbox, L"SearchPrograms", L"@shell32.dll,-30569", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_SearchPrograms", 0x00000001, 0x00000000, 0x00000001, NULL, 0, g_SearchProgramsPolicies, ARRAYSIZE(g_SearchProgramsPolicies) },
     /* Sort by Name */
     { StartSettingCheckbox, L"SortByName", L"@shell32.dll,-30571", NULL, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced", L"Start_SortByName", 0x00000001, 0x00000000, 0x00000001, NULL, 0, NULL, 0 },
@@ -466,18 +463,6 @@ DWORD ReadDwordWithDefault(HKEY hRoot, PCWSTR pszRegPath, PCWSTR pszValueName,
     return dwDefaultValue;
 }
 
-static
-DWORD ReadDwordWithDefaultBounded(HKEY hRoot, PCWSTR pszRegPath, PCWSTR pszValueName,
-    DWORD dwDefaultValue, DWORD dwMinValue, DWORD dwMaxValue)
-{
-    DWORD dwValue = ReadDwordWithDefault(hRoot, pszRegPath, pszValueName,
-        dwDefaultValue);
-    if (dwValue < dwMinValue)
-        return dwMinValue;
-    if (dwValue > dwMaxValue)
-        return dwMaxValue;
-    return dwValue;
-}
 
 static
 BOOL WriteDwordValue(HKEY hRoot, PCWSTR pszRegPath, PCWSTR pszValueName,
@@ -1034,7 +1019,6 @@ void InitComboBoxes(void)
 static
 void UpdateLegacyControls(void)
 {
-    SetComboIndex(IDC_SM_10DLG_MODE, g_oldSettings.iMode);
     SendDlgItemMessage(g_hDlg, IDC_SM_MFU_PROGRAMS_SPIN,
         UDM_SETPOS, 0L, (LPARAM)g_oldSettings.iPrograms);
     SendDlgItemMessage(g_hDlg, IDC_SM_MFU_ITEMS_SPIN,
@@ -1822,9 +1806,6 @@ void HandleLegacyCommand(WORD iControl)
 
     switch (iControl)
     {
-    case IDC_SM_10DLG_MODE:
-        g_newSettings.iMode = GetComboIndex();
-        break;
 
     case IDOK:
         g_newSettings.iPrograms = GetUdPos(IDC_SM_MFU_PROGRAMS_SPIN);
@@ -1856,8 +1837,6 @@ void HandleLegacyCommand(WORD iControl)
 static
 void HandleLegacyComboBoxSelChange(WORD iControl)
 {
-    if (iControl != IDC_SM_10DLG_MODE)
-        return;
 
     g_newSettings.iMode =
         (BYTE)SendDlgItemMessage(g_hDlg, iControl, CB_GETCURSEL, 0L, 0L);

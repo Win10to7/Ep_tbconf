@@ -12,9 +12,6 @@
 #include <commctrl.h>
 #include <initguid.h>
 #include <shellapi.h>
-#include <windows.h>
-#include <stdio.h>
-#include <shlobj.h>
 
 /* https://www.geoffchappell.com/studies/windows/shell/shlwapi/api/winpolicy/policies.htm
  */
@@ -25,6 +22,70 @@ DEFINE_GUID(POLID_TaskbarLockAll,
 
 static HICON g_hiconLarge;
 static HICON g_hiconSmall;
+
+#define TASKBAR_PAGE_INDEX    0
+#define STARTMENU_PAGE_INDEX  1
+
+static WCHAR
+ToLowerAscii(WCHAR ch)
+{
+    if (ch >= L'A' && ch <= L'Z')
+        return ch + (L'a' - L'A');
+    return ch;
+}
+
+static
+BOOL StartsWithI(PCWSTR pszText, PCWSTR pszPrefix)
+{
+    while (*pszPrefix)
+    {
+        if (ToLowerAscii(*pszText) != ToLowerAscii(*pszPrefix))
+            return FALSE;
+        ++pszText;
+        ++pszPrefix;
+    }
+    return TRUE;
+}
+
+static
+PCWSTR FindStringI(PCWSTR pszText, PCWSTR pszNeedle)
+{
+    for (; *pszText; ++pszText)
+    {
+        if (StartsWithI(pszText, pszNeedle))
+            return pszText;
+    }
+    return NULL;
+}
+
+static
+BOOL IsCommandLineStartMenuRequest(void)
+{
+    static const WCHAR shell32[] = L"shell32.dll";
+    static const WCHAR optionsRunDll[] = L"Options_RunDLL";
+
+    PCWSTR pszCommandLine = GetCommandLineW();
+    PCWSTR pszOptions = FindStringI(pszCommandLine, optionsRunDll);
+
+    if (!pszOptions || !FindStringI(pszCommandLine, shell32))
+        return FALSE;
+
+    pszOptions += sizeof(optionsRunDll) / sizeof(optionsRunDll[0]) - 1;
+    while (*pszOptions == L' ' || *pszOptions == L'\t')
+        ++pszOptions;
+
+    return pszOptions[0] == L'3' &&
+        (pszOptions[1] == L'\0' || pszOptions[1] == L' ' ||
+         pszOptions[1] == L'\t');
+}
+
+static
+UINT GetStartPage(void)
+{
+    return IsCommandLineStartMenuRequest() ?
+        STARTMENU_PAGE_INDEX : TASKBAR_PAGE_INDEX;
+}
+
 
 PROPSHEET g_propSheet;
 
@@ -74,6 +135,9 @@ void SetIcon(void)
 
 static LRESULT CALLBACK PropSheetSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 {
+    UNREFERENCED_PARAMETER(lParam);
+    UNREFERENCED_PARAMETER(uIdSubclass);
+    UNREFERENCED_PARAMETER(dwRefData);
     if (uMsg == WM_SHOWWINDOW && wParam) {
         RECT wndRect;
         GetWindowRect(hWnd, &wndRect);
@@ -235,7 +299,7 @@ Error:
 }
 
 static
-BOOL ShowRunningInstance(void)
+BOOL ShowRunningInstance(UINT nStartPage)
 {
     CreateMutex(0, TRUE, TEXT("TortoTbConfig"));
     if (GetLastError() != ERROR_ALREADY_EXISTS)
@@ -259,6 +323,7 @@ BOOL ShowRunningInstance(void)
         return FALSE;
     }
 
+    SendMessage(hExistingWnd, PSM_SETCURSEL, nStartPage, 0);
     SetForegroundWindow(hExistingWnd);
     return TRUE;
 }
@@ -317,7 +382,9 @@ _Success_(return == 0)
 static
 UINT InitProgram(void)
 {
-    if (ShowRunningInstance())
+    UINT nStartPage = GetStartPage();
+
+    if (ShowRunningInstance(nStartPage))
         return RETURN_EXISTING_INSTANCE;
 
     g_propSheet.heap = GetProcessHeap();
@@ -333,7 +400,7 @@ UINT InitProgram(void)
     if (IsAppRestricted())
         return RETURN_ERROR;
 
-    return InitGUI(0);
+    return InitGUI(nStartPage);
 
 Error:
     ShowMessageFromAppResource(NULL, IDS_ERROR_MEM, IDS_ERROR, MB_OK);

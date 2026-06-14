@@ -12,7 +12,6 @@
 #include <commctrl.h>
 #include <objbase.h>
 #include <shellapi.h>
-#include <shlwapi.h>
 #include <psapi.h>
 #define EnableApply() \
     SendMessage(g_propSheet.hWnd, PSM_CHANGED, (WPARAM)g_hDlg, 0L)
@@ -203,7 +202,6 @@ void InitComboBoxes(void)
 	InitCombo(IDC_SM_POWEROPTIONS, IDS_SM_POWEROPTIONS_SWITCH, 6);
 	
 	InitCombo(IDC_NA_CLOCK, IDS_NA_CLOCK_10, 3);
-	InitCombo(IDC_NA_NETWORK, IDS_NA_NETWORK_10, 5);
 
 #undef InitCombo
 }
@@ -416,7 +414,6 @@ void UpdateExplorerControls(void)
     SetChecked(IDC_NA_WIN32BATTERY, g_oldSettings.bWin32Battery);
     SetChecked(IDC_NA_WIN32SOUND, g_oldSettings.bWin32Sound);
     SetComboIndex(IDC_NA_CLOCK, g_oldSettings.iClock);
-    SetComboIndex(IDC_NA_NETWORK, g_oldSettings.iNetwork);
     SetChecked(IDC_NA_USERTILE, g_oldSettings.bUserTile);
 	
     SetChecked(IDC_ADV_ANIMATIONS,     g_oldSettings.bAnimations);
@@ -1083,10 +1080,6 @@ void HandleComboBoxSelChange(WORD iControl)
     case IDC_NA_CLOCK:
         g_newSettings.iClock = GetComboIndex();
         break;	
-		
-    case IDC_NA_NETWORK:
-        g_newSettings.iNetwork = GetComboIndex();
-        break;		
 
     default:
         return;

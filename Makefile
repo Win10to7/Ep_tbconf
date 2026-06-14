@@ -15,7 +15,7 @@ MY_CPPFLAGS = -D_WINDOWS -DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00\
 
 MY_LDFLAGS = -s\
 	-nostdlib -Wl,-e__main -Wl,--enable-stdcall-fixup\
-	-ladvapi32 -lcomctl32 -lkernel32 -lshell32 -lshlwapi -luser32\
+	-ladvapi32 -lcomctl32 -lkernel32 -lole32 -lshell32 -lshlwapi -luxtheme -luser32\
 	-Wl,-subsystem,windows:6.2 $(LDFLAGS)
 
 OBJ =\
@@ -23,7 +23,7 @@ OBJ =\
 	src/mincrt.obj\
 	src/util.obj\
 	src/pages.obj\
-
+	src/dialogs.obj
 RES = res/app.res
 
 all: $(PROG)

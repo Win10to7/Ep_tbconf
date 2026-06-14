@@ -42,9 +42,6 @@
 /* Start Menu Dialogs */
 #define IDC_SM_DEFAULT_BUTTON  1037
 
-#define IDC_SM_10DLG  250
-#define IDC_SM_10DLG_MODE  251
-
 #define IDC_SM_7DLG  260
 #define IDC_SM_MFU_PROGRAMS 1307
 #define IDC_SM_MFU_ITEMS 1309
@@ -52,13 +49,10 @@
 #define IDC_SM_MFU_ITEMS_SPIN 1308
 
 /* Notification Area page */
-#define IDC_NA_ICON_TEXT 300
 #define IDC_NA_WIN32BATTERY 301
 #define IDC_NA_WIN32SOUND 302
 #define IDC_NA_CLOCK 303
 #define IDC_NA_CLOCK_TEXT 304
-#define IDC_NA_NETWORK 305
-#define IDC_NA_NETWORK_TEXT 306
 #define IDC_NA_USERTILE 307
 
 /* Advanced page */
@@ -99,11 +93,5 @@
 #define IDS_NA_CLOCK_WIN32  701
 #define IDS_NA_CLOCK_ACTION 702
 #define IDS_NA_DIALOG       703
-
-#define IDS_NA_NETWORK_10 800
-#define IDS_NA_NETWORK_SETTINGS 801
-#define IDS_NA_NETWORK_8 802
-#define IDS_NA_NETWORK_NETCENTER 803
-#define IDS_NA_NETWORK_NETCON 804
 
 #endif  /* !defined(RESOURCE_H) */
