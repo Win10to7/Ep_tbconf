@@ -20,6 +20,9 @@ int ShowMessageFromResource(HMODULE hModule, HWND hWnd,
 
 _Success_(return)
 BOOL SetCustomVisualFx(void);
+BOOL InitHighDpiSupport(void);
+UINT GetWindowDpiValue(HWND hWnd);
+int GetSystemMetricsForWindowDpi(int nIndex, HWND hWnd);
 
 void NotifyTraySettingsChanged(BOOL bRebuildStartMenu);
 BOOL StartIsBackExists(void);

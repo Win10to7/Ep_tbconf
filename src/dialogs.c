@@ -715,12 +715,10 @@ BOOL LoadSettingIcon(PCWSTR pszBitmap, HICON *phIcon)
 static
 BOOL CreateTransparentStateImageList(STARTMENU7STATE *pState)
 {
-    static const WORD s_maskBits[16] = {
-        0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
-        0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
-        0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF,
-        0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF
-    };
+    UINT dpi = GetWindowDpiValue(pState->hTree);
+    int cxState = MulDiv(16, dpi, USER_DEFAULT_SCREEN_DPI);
+    int cyState = cxState;
+    WORD *pMaskBits = NULL;
     HBITMAP hColor = NULL;
     HBITMAP hMask = NULL;
     BITMAPINFO bmi;
@@ -732,23 +730,31 @@ BOOL CreateTransparentStateImageList(STARTMENU7STATE *pState)
     if (!hdcScreen)
         return FALSE;
 
-    pState->hStateImages = ImageList_Create(16, 16, ILC_COLOR32 | ILC_MASK, 8, 0);
+    pMaskBits = (WORD *)Alloc(HEAP_ZERO_MEMORY,
+        (SIZE_T)cxState * (SIZE_T)cyState * sizeof(WORD));
+    if (!pMaskBits)
+        goto Cleanup;
+    for (iImage = 0; iImage < (UINT)(cxState * cyState); iImage++)
+        pMaskBits[iImage] = 0xFFFF;
+
+    pState->hStateImages = ImageList_Create(cxState, cyState,
+        ILC_COLOR32 | ILC_MASK, 8, 0);
     if (!pState->hStateImages)
         goto Cleanup;
 
     ZeroMemory(&bmi, sizeof(bmi));
     bmi.bmiHeader.biSize = sizeof(bmi.bmiHeader);
-    bmi.bmiHeader.biWidth = 16;
-    bmi.bmiHeader.biHeight = -16;
+    bmi.bmiHeader.biWidth = cxState;
+    bmi.bmiHeader.biHeight = -cyState;
     bmi.bmiHeader.biPlanes = 1;
     bmi.bmiHeader.biBitCount = 32;
     bmi.bmiHeader.biCompression = BI_RGB;
     hColor = CreateDIBSection(hdcScreen, &bmi, DIB_RGB_COLORS, &pvBits, NULL, 0);
     if (!hColor)
         goto Cleanup;
-    ZeroMemory(pvBits, 16 * 16 * 4);
+    ZeroMemory(pvBits, (SIZE_T)cxState * (SIZE_T)cyState * 4);
 
-    hMask = CreateBitmap(16, 16, 1, 1, s_maskBits);
+    hMask = CreateBitmap(cxState, cyState, 1, 1, pMaskBits);
     if (!hMask)
         goto Cleanup;
 
@@ -770,6 +776,8 @@ Cleanup:
         DeleteObject(hMask);
     if (hColor)
         DeleteObject(hColor);
+    if (pMaskBits)
+        Free(pMaskBits);
     ReleaseDC(NULL, hdcScreen);
     return bRet;
 }
@@ -853,11 +861,17 @@ BOOL DrawTreeItemState(HWND hWnd, HDC hdc, RECT *prcState,
         CloseThemeData(hTheme);
     }
 
-    rcDraw = *prcState;
-    rcDraw.left += ((prcState->right - prcState->left) - 13) / 2;
-    rcDraw.top += ((prcState->bottom - prcState->top) - 13) / 2;
-    rcDraw.right = rcDraw.left + 13;
-    rcDraw.bottom = rcDraw.top + 13;
+    {
+        UINT dpi = GetWindowDpiValue(hWnd);
+        int cxCheck = MulDiv(13, dpi, USER_DEFAULT_SCREEN_DPI);
+        int cyCheck = cxCheck;
+
+        rcDraw = *prcState;
+        rcDraw.left += ((prcState->right - prcState->left) - cxCheck) / 2;
+        rcDraw.top += ((prcState->bottom - prcState->top) - cyCheck) / 2;
+        rcDraw.right = rcDraw.left + cxCheck;
+        rcDraw.bottom = rcDraw.top + cyCheck;
+    }
     uState = kind == StartNodeRadio ? DFCS_BUTTONRADIO : DFCS_BUTTONCHECK;
     if (bChecked)
         uState |= DFCS_CHECKED;
@@ -870,6 +884,22 @@ static
 BOOL CreateStateImageList(STARTMENU7STATE *pState)
 {
     return CreateTransparentStateImageList(pState);
+}
+static
+void RefreshStartMenuStateImageList(STARTMENU7STATE *pState)
+{
+    HIMAGELIST hOldStateImages = pState->hStateImages;
+
+    pState->hStateImages = NULL;
+    if (!CreateStateImageList(pState))
+    {
+        pState->hStateImages = hOldStateImages;
+        return;
+    }
+
+    TreeView_SetImageList(pState->hTree, pState->hStateImages, TVSIL_STATE);
+    if (hOldStateImages)
+        ImageList_Destroy(hOldStateImages);
 }
 
 static
@@ -918,6 +948,7 @@ void SetTreeItemStateImage(HWND hTree, HTREEITEM hItem, int iImage)
         TVIS_STATEIMAGEMASK);
 }
 static BOOL SettingCheckedValue(STARTMENU7STATE *pState, UINT iSetting);
+static BOOL ReadTreeItemNode(HWND hTree, HTREEITEM hItem, STARTMENU_NODE **ppNode);
 static BOOL OptionCheckedValue(STARTMENU7STATE *pState, UINT iSetting, UINT iOption);
 
 static
@@ -1146,8 +1177,8 @@ void DrawStartMenuNodeImage(STARTMENU7STATE *pState,
     if (!TreeView_GetItem(pState->hTree, &item))
         return;
 
-    cxImage = GetSystemMetrics(SM_CXSMICON);
-    cyImage = GetSystemMetrics(SM_CYSMICON);
+    cxImage = GetSystemMetricsForWindowDpi(SM_CXSMICON, pState->hTree);
+    cyImage = GetSystemMetricsForWindowDpi(SM_CYSMICON, pState->hTree);
     crTextOld = SetTextColor(pCustomDraw->nmcd.hdc, pCustomDraw->clrText);
     crBkOld = SetBkColor(pCustomDraw->nmcd.hdc, pCustomDraw->clrTextBk);
     if (SendMessage(pState->hTree, TVM_GETBKCOLOR, 0L, 0L) == CLR_NONE)
@@ -1242,7 +1273,7 @@ BOOL StartMenuHitCustomContent(STARTMENU7STATE *pState, HTREEITEM hItem, POINT p
     rcMeasure = rcText;
     if (pNode->hIcon)
     {
-        cxImage = GetSystemMetrics(SM_CXSMICON) + 2;
+        cxImage = GetSystemMetricsForWindowDpi(SM_CXSMICON, pState->hTree) + 2;
         rcMeasure.left += cxImage;
     }
     rcMeasure.right = rcItem.right;
@@ -1877,13 +1908,31 @@ INT_PTR CALLBACK StartMenu10DlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM 
 
 INT_PTR CALLBACK StartMenu7DlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    UNREFERENCED_PARAMETER(lParam);
-
     switch (uMsg)
     {
     case WM_INITDIALOG:
         g_hDlg = hWnd;
         return InitializeStartMenu7Dialog(hWnd) ? TRUE : FALSE;
+
+    case WM_DPICHANGED:
+    {
+        const RECT *prcNewWindow = (const RECT *)lParam;
+        if (prcNewWindow)
+        {
+            SetWindowPos(hWnd, NULL,
+                prcNewWindow->left, prcNewWindow->top,
+                prcNewWindow->right - prcNewWindow->left,
+                prcNewWindow->bottom - prcNewWindow->top,
+                SWP_NOZORDER | SWP_NOACTIVATE);
+        }
+
+        if (g_startMenu7.hTree)
+        {
+            RefreshStartMenuStateImageList(&g_startMenu7);
+            InvalidateRect(g_startMenu7.hTree, NULL, TRUE);
+        }
+        return TRUE;
+    }
 
     case WM_COMMAND:
         switch (LOWORD(wParam))
@@ -1903,7 +1952,7 @@ INT_PTR CALLBACK StartMenu7DlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM l
                 ShowMessageFromAppResource(hWnd, IDS_ERROR_GENERIC, IDS_ERROR, MB_OK);
                 return TRUE;
             }
-            
+
             CleanupStartMenu7Dialog();
             EndDialog(hWnd, IDOK);
             return TRUE;

@@ -9,6 +9,123 @@
 #include "app.h"
 
 #include <commctrl.h>
+#ifndef DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+#define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 ((HANDLE)-4)
+#endif
+
+#ifndef PROCESS_PER_MONITOR_DPI_AWARE
+#define PROCESS_PER_MONITOR_DPI_AWARE 2
+#endif
+
+typedef BOOL (WINAPI *PFN_SetProcessDpiAwarenessContext)(HANDLE value);
+typedef HRESULT (WINAPI *PFN_SetProcessDpiAwareness)(int value);
+typedef BOOL (WINAPI *PFN_SetProcessDPIAware)(void);
+typedef UINT (WINAPI *PFN_GetDpiForWindow)(HWND hWnd);
+typedef int (WINAPI *PFN_GetSystemMetricsForDpi)(int nIndex, UINT dpi);
+
+static
+BOOL IsDpiApiAccessDenied(void)
+{
+    return GetLastError() == ERROR_ACCESS_DENIED;
+}
+
+BOOL InitHighDpiSupport(void)
+{
+    HMODULE hUser32 = GetModuleHandleW(L"user32.dll");
+    HMODULE hShcore = NULL;
+    PFN_SetProcessDpiAwarenessContext pSetProcessDpiAwarenessContext;
+    PFN_SetProcessDPIAware pSetProcessDPIAware;
+    PFN_SetProcessDpiAwareness pSetProcessDpiAwareness;
+
+    pSetProcessDpiAwarenessContext = hUser32 ?
+        (PFN_SetProcessDpiAwarenessContext)GetProcAddress(hUser32,
+            "SetProcessDpiAwarenessContext") : NULL;
+    if (pSetProcessDpiAwarenessContext)
+    {
+        SetLastError(ERROR_SUCCESS);
+        if (pSetProcessDpiAwarenessContext(
+            DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) ||
+            IsDpiApiAccessDenied())
+        {
+            return TRUE;
+        }
+    }
+
+    hShcore = LoadLibraryW(L"shcore.dll");
+    if (hShcore)
+    {
+        pSetProcessDpiAwareness = (PFN_SetProcessDpiAwareness)GetProcAddress(
+            hShcore, "SetProcessDpiAwareness");
+        if (pSetProcessDpiAwareness)
+        {
+            HRESULT hr = pSetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+            if (SUCCEEDED(hr) || hr == E_ACCESSDENIED)
+            {
+                FreeLibrary(hShcore);
+                return TRUE;
+            }
+        }
+        FreeLibrary(hShcore);
+    }
+
+    pSetProcessDPIAware = hUser32 ?
+        (PFN_SetProcessDPIAware)GetProcAddress(hUser32,
+            "SetProcessDPIAware") : NULL;
+    if (!pSetProcessDPIAware)
+        return FALSE;
+
+    SetLastError(ERROR_SUCCESS);
+    return pSetProcessDPIAware() || IsDpiApiAccessDenied();
+}
+
+UINT GetWindowDpiValue(HWND hWnd)
+{
+    static PFN_GetDpiForWindow s_pGetDpiForWindow;
+    static BOOL s_bDpiForWindowInitialized;
+    HDC hdc;
+    UINT dpi;
+
+    if (!s_bDpiForWindowInitialized)
+    {
+        HMODULE hUser32 = GetModuleHandleW(L"user32.dll");
+        s_pGetDpiForWindow = hUser32 ?
+            (PFN_GetDpiForWindow)GetProcAddress(hUser32, "GetDpiForWindow") :
+            NULL;
+        s_bDpiForWindowInitialized = TRUE;
+    }
+
+    if (s_pGetDpiForWindow && hWnd)
+        return s_pGetDpiForWindow(hWnd);
+
+    hdc = GetDC(hWnd);
+    if (!hdc)
+        return USER_DEFAULT_SCREEN_DPI;
+
+    dpi = (UINT)GetDeviceCaps(hdc, LOGPIXELSX);
+    ReleaseDC(hWnd, hdc);
+    return dpi ? dpi : USER_DEFAULT_SCREEN_DPI;
+}
+
+int GetSystemMetricsForWindowDpi(int nIndex, HWND hWnd)
+{
+    static PFN_GetSystemMetricsForDpi s_pGetSystemMetricsForDpi;
+    static BOOL s_bMetricsForDpiInitialized;
+    UINT dpi = GetWindowDpiValue(hWnd);
+
+    if (!s_bMetricsForDpiInitialized)
+    {
+        HMODULE hUser32 = GetModuleHandleW(L"user32.dll");
+        s_pGetSystemMetricsForDpi = hUser32 ?
+            (PFN_GetSystemMetricsForDpi)GetProcAddress(hUser32,
+                "GetSystemMetricsForDpi") : NULL;
+        s_bMetricsForDpiInitialized = TRUE;
+    }
+
+    if (s_pGetSystemMetricsForDpi)
+        return s_pGetSystemMetricsForDpi(nIndex, dpi);
+
+    return MulDiv(GetSystemMetrics(nIndex), dpi, USER_DEFAULT_SCREEN_DPI);
+}
 
 _Success_(return >= 0)
 static

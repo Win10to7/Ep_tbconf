@@ -135,105 +135,135 @@ void SetIcon(void)
 
 static LRESULT CALLBACK PropSheetSubclassProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData)
 {
-    UNREFERENCED_PARAMETER(lParam);
     UNREFERENCED_PARAMETER(uIdSubclass);
     UNREFERENCED_PARAMETER(dwRefData);
-    if (uMsg == WM_SHOWWINDOW && wParam) {
-        RECT wndRect;
-        GetWindowRect(hWnd, &wndRect);
-        int wndWidth = wndRect.right - wndRect.left;
-        int wndHeight = wndRect.bottom - wndRect.top;
 
-        /* Get screen and work area */
-        int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-        int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+    switch (uMsg)
+    {
+    case WM_DPICHANGED:
+    {
+        const RECT *prcNewWindow = (const RECT *)lParam;
+        if (prcNewWindow)
+        {
+            SetWindowPos(hWnd, NULL,
+                prcNewWindow->left, prcNewWindow->top,
+                prcNewWindow->right - prcNewWindow->left,
+                prcNewWindow->bottom - prcNewWindow->top,
+                SWP_NOZORDER | SWP_NOACTIVATE);
+        }
+        return 0;
+    }
 
-        POINT pt;
-        GetCursorPos(&pt);
-        HMONITOR hMonitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
-        MONITORINFO mi = { 0 };
-        mi.cbSize = sizeof(mi);
-        GetMonitorInfo(hMonitor, &mi);
+    case WM_SHOWWINDOW:
+        if (wParam)
+        {
+            RECT wndRect;
+            GetWindowRect(hWnd, &wndRect);
+            int wndWidth = wndRect.right - wndRect.left;
+            int wndHeight = wndRect.bottom - wndRect.top;
 
-        RECT workArea = mi.rcWork;
-        RECT monitorArea = mi.rcMonitor;
-        int x = 0, y = 0;
-        APPBARDATA abd = { 0 };
-        abd.cbSize = sizeof(APPBARDATA);
-        UINT state = SHAppBarMessage(ABM_GETSTATE, &abd);
-        BOOL isAutoHide = (state & ABS_AUTOHIDE);
+            POINT pt;
+            GetCursorPos(&pt);
+            HMONITOR hMonitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+            MONITORINFO mi = { 0 };
+            mi.cbSize = sizeof(mi);
+            GetMonitorInfo(hMonitor, &mi);
 
-        if (isAutoHide) {
-            abd.hWnd = FindWindow(TEXT("Shell_TrayWnd"), NULL);
-            if (abd.hWnd && SHAppBarMessage(ABM_GETTASKBARPOS, &abd)) {
-                if (abd.rc.top == 0 && abd.rc.left == 0 && abd.rc.right == screenWidth) {
+            RECT workArea = mi.rcWork;
+            RECT monitorArea = mi.rcMonitor;
+            int x = 0, y = 0;
+            APPBARDATA abd = { 0 };
+            abd.cbSize = sizeof(APPBARDATA);
+            UINT_PTR state = SHAppBarMessage(ABM_GETSTATE, &abd);
+            BOOL isAutoHide = (state & ABS_AUTOHIDE) != 0;
+
+            if (isAutoHide)
+            {
+                abd.hWnd = FindWindow(TEXT("Shell_TrayWnd"), NULL);
+                if (abd.hWnd && SHAppBarMessage(ABM_GETTASKBARPOS, &abd))
+                {
+                    if (abd.rc.top == monitorArea.top &&
+                        abd.rc.left == monitorArea.left &&
+                        abd.rc.right == monitorArea.right)
+                    {
+                        /* Taskbar at top */
+                        x = workArea.left;
+                        y = monitorArea.top;
+                    }
+                    else if (abd.rc.left == monitorArea.left &&
+                        abd.rc.top == monitorArea.top &&
+                        abd.rc.bottom == monitorArea.bottom)
+                    {
+                        /* Taskbar at left */
+                        x = monitorArea.left;
+                        y = workArea.top;
+                    }
+                    else if (abd.rc.right == monitorArea.right &&
+                        abd.rc.top == monitorArea.top &&
+                        abd.rc.bottom == monitorArea.bottom)
+                    {
+                        /* Taskbar at right */
+                        x = monitorArea.right - wndWidth;
+                        y = workArea.top;
+                    }
+                    else
+                    {
+                        /* Taskbar at bottom */
+                        x = workArea.left;
+                        y = monitorArea.bottom - wndHeight;
+                    }
+                }
+                else
+                {
+                    x = workArea.left + ((workArea.right - workArea.left) - wndWidth) / 2;
+                    y = workArea.top + ((workArea.bottom - workArea.top) - wndHeight) / 2;
+                }
+            }
+            else
+            {
+                if (workArea.top > monitorArea.top)
+                {
                     /* Taskbar at top */
                     x = workArea.left;
-                    y = 0;
+                    y = workArea.top;
                 }
-                else if (abd.rc.left == 0 && abd.rc.top == 0 && abd.rc.bottom == screenHeight) {
+                else if (workArea.left > monitorArea.left)
+                {
                     /* Taskbar at left */
-                    x = 0;
+                    x = workArea.left;
                     y = workArea.top;
                 }
-                else if (abd.rc.right == screenWidth && abd.rc.top == 0 && abd.rc.bottom == screenHeight) {
+                else if (workArea.right < monitorArea.right)
+                {
                     /* Taskbar at right */
-                    x = screenWidth - wndWidth;
+                    x = workArea.right - wndWidth;
                     y = workArea.top;
                 }
-                else {
+                else if (workArea.bottom < monitorArea.bottom)
+                {
                     /* Taskbar at bottom */
                     x = workArea.left;
-                    y = screenHeight - wndHeight;
+#ifdef BLUEPILL
+                    y = workArea.bottom - wndHeight - 4;
+#else
+                    y = workArea.bottom - wndHeight;
+#endif
+                    if (y < 0)
+                        y = 0;
+                }
+                else
+                {
+                    x = workArea.left + ((workArea.right - workArea.left) - wndWidth) / 2;
+                    y = workArea.top + ((workArea.bottom - workArea.top) - wndHeight) / 2;
                 }
             }
-            else {
-                x = workArea.left + ((workArea.right - workArea.left) - wndWidth) / 2;
-                y = workArea.top + ((workArea.bottom - workArea.top) - wndHeight) / 2;
-            }
-        }
-        else {
-            if (workArea.top > monitorArea.top) {
-                /* Taskbar at top */
-                x = workArea.left;
-                y = workArea.top;
-            }
-            else if (workArea.left > monitorArea.left) {
-                /* Taskbar at left */
-                x = workArea.left;
-                y = workArea.top;
-            }
-            else if (workArea.right < monitorArea.right) {
-                /* Taskbar at right */
-                x = workArea.right - wndWidth;
-                y = workArea.top;
-            }
-            else if (workArea.bottom < monitorArea.bottom) {
-                /* Taskbar at bottom */
-                x = workArea.left;
-                #ifdef BLUEPILL
-                   y = workArea.bottom - wndHeight - 4;
-                #else
-                    y = workArea.bottom - wndHeight;
-                #endif
-                if (y < 0) y = 0;
-            }
-            else {
-                x = workArea.left + ((workArea.right - workArea.left) - wndWidth) / 2;
-                y = workArea.top + ((workArea.bottom - workArea.top) - wndHeight) / 2;
-            }
-        }
 
-        SetWindowPos(
-            hWnd,
-            HWND_TOP,
-            x,
-            y,
-            wndWidth,
-            wndHeight,
-            SWP_NOZORDER | SWP_NOSIZE
-        );
+            SetWindowPos(hWnd, HWND_TOP, x, y, wndWidth, wndHeight,
+                SWP_NOZORDER | SWP_NOSIZE);
+        }
+        break;
     }
+
     return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 }
 
@@ -383,6 +413,8 @@ static
 UINT InitProgram(void)
 {
     UINT nStartPage = GetStartPage();
+
+    InitHighDpiSupport();
 
     if (ShowRunningInstance(nStartPage))
         return RETURN_EXISTING_INSTANCE;
